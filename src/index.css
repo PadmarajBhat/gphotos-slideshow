@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --app-font: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #020617;
+    color: #f8fafc;
+    font-family: var(--app-font);
+    overflow: hidden;
+  }
+}
+
+/* TV Remote Focus Ring - 10ft UI accessibility.
+   :focus (not just :focus-visible) because D-pad focus moved programmatically
+   does not always qualify as "visible" focus in TV browsers. */
+.tv-focus-target:focus,
+.tv-focus-target:focus-visible {
+  outline: 4px solid #FFB81C !important;
+  outline-offset: 4px;
+  transform: scale(1.04);
+  box-shadow: 0 10px 30px -5px rgba(255, 184, 28, 0.4);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Corner darkening behind the centred photo. Tailwind has no radial gradient
+   utility, so the previous `bg-radial-gradient` class rendered nothing. */
+.bg-vignette {
+  background: radial-gradient(
+    ellipse at center,
+    transparent 40%,
+    rgba(2, 6, 23, 0.4) 100%
+  );
+}
+
+/* Subtle frosted glass ambient panel styling */
+.ambient-glass {
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+/* Ken Burns Pan & Zoom Animation */
+@keyframes kenburns-motion {
+  0% {
+    transform: scale(1.0) translate(0, 0);
+  }
+  50% {
+    transform: scale(1.08) translate(-1%, -1%);
+  }
+  100% {
+    transform: scale(1.15) translate(1%, 0.5%);
+  }
+}
+
+.animate-ken-burns {
+  animation: kenburns-motion 14s ease-out alternate infinite;
+}

@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "luminaframe-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000,
+      "autoPort": false
+    },
+    {
+      "name": "luminaframe-helper",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "helper"],
+      "port": 4000,
+      "autoPort": false
+    }
+  ]
+}

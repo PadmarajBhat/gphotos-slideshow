@@ -1,0 +1,40 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+*.tsbuildinfo
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment & Credentials (Zero-Trust Security)
+.env
+.env.*
+!.env.example
+*.pem
+*-key.json
+credentials.json
+*.tfstate
+
+# Python tooling
+__pycache__/
+*.pyc
+
+# LuminaFrame helper credentials
+server/.tokens.json

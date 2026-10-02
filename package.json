@@ -1,0 +1,46 @@
+{
+  "name": "luminaframe-photos-slideshow",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "helper": "node server/index.mjs",
+    "start": "node server/index.mjs",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "verify": "npm run lint && npm test && npm run build",
+    "spec-check": "python tools/spec_drift_check.py"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.66.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.475.0",
+    "qrcode-generator": "^2.0.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwind-merge": "^3.0.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.2.0",
+    "@types/node": "^22.13.4",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^15.15.0",
+    "jsdom": "^26.0.0",
+    "postcss": "^8.5.2",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.70.1",
+    "vite": "^6.1.0",
+    "vitest": "^3.0.5"
+  }
+}

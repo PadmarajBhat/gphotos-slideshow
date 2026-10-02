@@ -1,0 +1,9 @@
+# Store text with LF in the repo regardless of contributor OS, so Windows
+# checkouts don't produce line-ending-only diffs.
+* text=auto eol=lf
+
+*.png  binary
+*.jpg  binary
+*.webp binary
+*.ico  binary
+*.woff2 binary
