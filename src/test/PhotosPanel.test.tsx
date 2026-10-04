@@ -30,19 +30,41 @@ describe('PhotosPanel (right side of the home screen)', () => {
     expect(onConnect).toHaveBeenCalledTimes(1);
   });
 
+  const pairing = status({ phase: 'pairing', userCode: 'HXFZ-JKTQ', verificationUrl: 'https://www.google.com/device' });
+
   it('shows the QR and the code while pairing', () => {
-    const { container } = renderPanel(
-      status({ phase: 'pairing', userCode: 'HXFZ-JKTQ', verificationUrl: 'https://www.google.com/device' })
-    );
-    expect(screen.getByText('Scan to show your photos')).toBeInTheDocument();
-    expect(screen.getByLabelText('Pairing code HXFZ-JKTQ')).toHaveTextContent('HXFZ-JKTQ');
+    const { container } = renderPanel(pairing);
+    expect(screen.getByText('Scan or tap to show your photos')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Pairing code HXFZ-JKTQ/ })).toHaveTextContent('HXFZ-JKTQ');
     expect(container.querySelector('svg[role="img"]')).toBeInTheDocument();
   });
 
-  it('switches to the album-choice QR once paired', () => {
+  it("makes the QR tappable, since a phone can't scan its own screen", () => {
+    renderPanel(pairing);
+    const link = screen.getByRole('link', { name: 'Open Google to enter the code' });
+    expect(link).toHaveAttribute('href', 'https://www.google.com/device');
+    expect(link).toHaveAttribute('target', '_blank');
+  });
+
+  it('copies the code when tapped, ready to paste on the Google page', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+
+    renderPanel(pairing);
+    fireEvent.click(screen.getByRole('button', { name: /Pairing code/ }));
+
+    expect(writeText).toHaveBeenCalledWith('HXFZ-JKTQ');
+    expect(await screen.findByText('Copied')).toBeInTheDocument();
+  });
+
+  it('switches to the album-choice QR once paired, also tappable', () => {
     renderPanel(status({ phase: 'awaiting_sources', settingsUri: 'https://photos.google.com/frame/abc' }));
     expect(screen.getByText('Now pick your albums')).toBeInTheDocument();
     expect(screen.getByLabelText('Scan to choose albums')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open Google Photos to choose albums' })).toHaveAttribute(
+      'href',
+      'https://photos.google.com/frame/abc'
+    );
   });
 
   it('becomes a playable Google Photos tile when ready', () => {

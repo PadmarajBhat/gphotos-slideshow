@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AmbientStatus } from '../api/ambient';
 import { QrCode } from './QrCode';
 import { Loader2, CheckCircle2, Images, CloudOff } from 'lucide-react';
@@ -32,6 +32,7 @@ export const PhotosPanel: React.FC<PhotosPanelProps> = ({
   onPlay,
 }) => {
   const lastAttemptRef = useRef(0);
+  const [copied, setCopied] = useState(false);
 
   // Request a pairing code by itself, so the QR is simply there on launch.
   useEffect(() => {
@@ -68,16 +69,37 @@ export const PhotosPanel: React.FC<PhotosPanelProps> = ({
   }
 
   if (status.phase === 'pairing' && status.userCode && status.verificationUrl) {
+    const code = status.userCode;
     return (
       <div className={tile} aria-label="Connect Google Photos">
-        <QrCode value={status.verificationUrl} size={200} label="Scan to show your photos" />
-        <p className="text-lg lg:text-xl font-bold text-white">Scan to show your photos</p>
-        <p
-          className="text-3xl lg:text-4xl font-black tracking-[0.15em] text-amber-400 font-mono"
-          aria-label={`Pairing code ${status.userCode}`}
+        {/* On a phone the QR is on the same screen as the camera, so it is
+            also a link: tapping it opens Google's code page directly. */}
+        <a
+          href={status.verificationUrl}
+          target="_blank"
+          rel="noreferrer"
+          data-nav
+          aria-label="Open Google to enter the code"
+          className="rounded-xl tv-focus-target"
         >
-          {status.userCode}
-        </p>
+          <QrCode value={status.verificationUrl} size={200} label="Scan to show your photos" />
+        </a>
+        <p className="text-lg lg:text-xl font-bold text-white">Scan or tap to show your photos</p>
+        <button
+          type="button"
+          data-nav
+          onClick={() => {
+            navigator.clipboard?.writeText(code).then(
+              () => setCopied(true),
+              () => {}
+            );
+          }}
+          aria-label={`Pairing code ${code}. Tap to copy.`}
+          className="text-3xl lg:text-4xl font-black tracking-[0.15em] text-amber-400 font-mono rounded-xl px-2 tv-focus-target"
+        >
+          {code}
+        </button>
+        {copied && <p className="text-xs text-emerald-400 -mt-2">Copied</p>}
       </div>
     );
   }
@@ -85,7 +107,18 @@ export const PhotosPanel: React.FC<PhotosPanelProps> = ({
   if (status.phase === 'awaiting_sources') {
     return (
       <div className={tile} aria-label="Choose albums">
-        {status.settingsUri && <QrCode value={status.settingsUri} size={200} label="Scan to choose albums" />}
+        {status.settingsUri && (
+          <a
+            href={status.settingsUri}
+            target="_blank"
+            rel="noreferrer"
+            data-nav
+            aria-label="Open Google Photos to choose albums"
+            className="rounded-xl tv-focus-target"
+          >
+            <QrCode value={status.settingsUri} size={200} label="Scan to choose albums" />
+          </a>
+        )}
         <p className="flex items-center gap-2 text-lg lg:text-xl font-bold text-white">
           <CheckCircle2 className="w-5 h-5 text-emerald-400" />
           Now pick your albums
