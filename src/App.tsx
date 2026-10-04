@@ -1,30 +1,44 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Album, MediaItem, SlideshowConfig } from './types';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { MediaItem, SlideshowConfig } from './types';
 import { useAmbientPhotos } from './hooks/useAmbientPhotos';
 import { fetchSharedAlbum } from './api/sharedAlbum';
-import { DEMO_ALBUMS, DEMO_MEDIA_MAP } from './api/demoData';
+import { DEMO_ALBUM, DEMO_ITEMS } from './api/demoData';
 import { loadConfig, saveConfig } from './utils/storage';
-import { Header } from './components/Header';
-import { AlbumGrid } from './components/AlbumGrid';
+import { isVideoItem } from './utils/mediaUrls';
+import {
+  RecentAlbum,
+  RecentKind,
+  clearRecentAlbums,
+  loadRecentAlbums,
+  recordRecentAlbum,
+} from './utils/recentAlbums';
+import { HomeScreen } from './components/HomeScreen';
 import { SlideshowView } from './components/SlideshowView';
 import { SettingsModal } from './components/SettingsModal';
 import { SharedAlbumModal } from './components/SharedAlbumModal';
-import { AmbientSetup } from './components/AmbientSetup';
-import { Sparkles, Tv, Images } from 'lucide-react';
 
-export const AMBIENT_ALBUM_ID = 'ambient-google-photos';
+interface Playing {
+  key: string;
+  kind: RecentKind;
+  items: MediaItem[];
+}
+
+interface CachedSharedAlbum {
+  title: string;
+  cover: string;
+  items: MediaItem[];
+}
 
 export const App: React.FC = () => {
   const [config, setConfig] = useState<SlideshowConfig>(loadConfig);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSharedOpen, setIsSharedOpen] = useState(false);
-  const [isAmbientOpen, setIsAmbientOpen] = useState(false);
-  const [isDemoActive, setIsDemoActive] = useState(false);
-  const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
-  const [albumError, setAlbumError] = useState<string | null>(null);
-  const [sharedAlbums, setSharedAlbums] = useState<Album[]>([]);
-  const [isLoadingShared, setIsLoadingShared] = useState(false);
-  const sharedMediaRef = useRef<Map<string, MediaItem[]>>(new Map());
+  const [playing, setPlaying] = useState<Playing | null>(null);
+  const [recent, setRecent] = useState<RecentAlbum[]>(loadRecentAlbums);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [sharedError, setSharedError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const sharedCache = useRef(new Map<string, CachedSharedAlbum>());
 
   const ambient = useAmbientPhotos();
 
@@ -33,177 +47,138 @@ export const App: React.FC = () => {
     saveConfig(config);
   }, [config]);
 
-  /**
-   * The user's real library appears as a single album. The Ambient API hands
-   * back the media the user chose on their phone, not a set of albums.
-   */
-  const ambientAlbum: Album | null = useMemo(() => {
-    if (!ambient.isReady) return null;
-    return {
-      id: AMBIENT_ALBUM_ID,
-      title: 'Your Google Photos',
-      coverPhotoBaseUrl: ambient.items[0]?.baseUrl ?? '',
-      mediaItemsCount: String(ambient.status.itemCount),
-      isDemo: false,
-    };
-  }, [ambient.isReady, ambient.items, ambient.status.itemCount]);
+  const googleCover = ambient.items.find((item) => !isVideoItem(item))?.baseUrl;
 
-  const displayedAlbums: Album[] = useMemo(
-    () => [...(ambientAlbum ? [ambientAlbum] : []), ...sharedAlbums, ...DEMO_ALBUMS],
-    [ambientAlbum, sharedAlbums]
-  );
+  // Google media URLs are renewed every 50 minutes, so play the live list
+  // rather than a snapshot taken when the slideshow started.
+  const activeItems = playing?.kind === 'google' ? ambient.items : playing?.items ?? [];
 
-  const activeMediaItems: MediaItem[] = useMemo(() => {
-    if (!selectedAlbumId) return [];
-    if (selectedAlbumId === AMBIENT_ALBUM_ID) return ambient.items;
+  // If the source disappears mid-play (for example the frame is unpaired),
+  // return home instead of resuming unexpectedly later.
+  useEffect(() => {
+    if (playing && activeItems.length === 0 && !isLoading) setPlaying(null);
+  }, [playing, activeItems.length, isLoading]);
 
-    const shared = sharedMediaRef.current.get(selectedAlbumId);
-    if (shared) return shared;
-
-    return DEMO_MEDIA_MAP[selectedAlbumId] ?? [];
-  }, [selectedAlbumId, ambient.items]);
-
-  const selectedAlbum = displayedAlbums.find((a) => a.id === selectedAlbumId) ?? null;
-
-  const handleSelectAlbum = useCallback(
-    (album: Album) => {
-      setAlbumError(null);
-
-      const items =
-        album.id === AMBIENT_ALBUM_ID
-          ? ambient.items
-          : sharedMediaRef.current.get(album.id) ?? DEMO_MEDIA_MAP[album.id] ?? [];
-
-      if (items.length === 0) {
-        setAlbumError(`"${album.title}" has no photos or videos to show.`);
-        return;
-      }
-      setSelectedAlbumId(album.id);
-    },
-    [ambient.items]
-  );
-
-  const handleExitSlideshow = useCallback(() => setSelectedAlbumId(null), []);
-
-  const handleStartDemo = useCallback(() => {
-    setIsDemoActive(true);
-    setAlbumError(null);
+  const remember = useCallback((entry: Omit<RecentAlbum, 'playedAt'>) => {
+    setRecent(recordRecentAlbum(entry));
   }, []);
 
-  const handleLoadSharedAlbum = useCallback(async (url: string) => {
-    setIsLoadingShared(true);
-    setAlbumError(null);
-    try {
-      const { album, items } = await fetchSharedAlbum(url);
-      sharedMediaRef.current.set(album.id, items);
-      setSharedAlbums((prev) => [album, ...prev]);
-      setIsSharedOpen(false);
-      setSelectedAlbumId(album.id);
-    } catch (err: unknown) {
-      setAlbumError(err instanceof Error ? err.message : 'Could not load that shared album.');
-    } finally {
-      setIsLoadingShared(false);
+  const playDemo = useCallback(() => {
+    setNotice(null);
+    setPlaying({ key: 'demo', kind: 'demo', items: DEMO_ITEMS });
+    remember({
+      key: 'demo',
+      kind: 'demo',
+      title: 'Demo',
+      count: DEMO_ITEMS.length,
+      cover: DEMO_ALBUM.coverPhotoBaseUrl,
+    });
+  }, [remember]);
+
+  const playGoogle = useCallback(() => {
+    if (!ambient.isReady || ambient.items.length === 0) {
+      setNotice('Your Google Photos are still loading. Try again in a moment.');
+      return;
     }
-  }, []);
+    setNotice(null);
+    setPlaying({ key: 'google', kind: 'google', items: [] });
+    remember({ key: 'google', kind: 'google', title: 'Your Google Photos', count: ambient.items.length });
+  }, [ambient.isReady, ambient.items.length, remember]);
 
-  if (selectedAlbum && activeMediaItems.length > 0) {
-    return (
-      <SlideshowView items={activeMediaItems} config={config} onExit={handleExitSlideshow} />
-    );
+  /** Loads (or reuses) a shared album and starts it. Throws on failure. */
+  const playShared = useCallback(
+    async (url: string) => {
+      let album = sharedCache.current.get(url);
+      if (!album) {
+        setIsLoading(true);
+        try {
+          const { album: meta, items } = await fetchSharedAlbum(url);
+          album = { title: meta.title, cover: meta.coverPhotoBaseUrl, items };
+          sharedCache.current.set(url, album);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+
+      const key = `shared:${url}`;
+      setPlaying({ key, kind: 'shared', items: album.items });
+      remember({
+        key,
+        kind: 'shared',
+        title: album.title,
+        count: album.items.length,
+        cover: album.cover,
+        sharedUrl: url,
+      });
+    },
+    [remember]
+  );
+
+  const handleSharedSubmit = useCallback(
+    async (url: string) => {
+      setSharedError(null);
+      try {
+        await playShared(url);
+        setIsSharedOpen(false);
+      } catch (err: unknown) {
+        setSharedError(err instanceof Error ? err.message : 'Could not load that shared album.');
+      }
+    },
+    [playShared]
+  );
+
+  const playRecent = useCallback(
+    async (entry: RecentAlbum) => {
+      setNotice(null);
+      if (entry.kind === 'demo') return playDemo();
+      if (entry.kind === 'google') return playGoogle();
+      try {
+        await playShared(entry.sharedUrl ?? '');
+      } catch (err: unknown) {
+        setNotice(err instanceof Error ? err.message : 'Could not load that album.');
+      }
+    },
+    [playDemo, playGoogle, playShared]
+  );
+
+  if (playing && activeItems.length > 0) {
+    return <SlideshowView items={activeItems} config={config} onExit={() => setPlaying(null)} />;
   }
 
-  const needsSetupPrompt =
-    ambient.status.phase === 'pairing' || ambient.status.phase === 'awaiting_sources';
+  // Resuming "Your Google Photos" only makes sense while this frame is paired.
+  const visibleRecent = recent.filter((entry) => entry.kind !== 'google' || ambient.isReady);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans select-none overflow-y-auto">
-      <Header
-        ambientPhase={ambient.status.phase}
-        isDemoActive={isDemoActive}
-        onOpenGooglePhotos={() => setIsAmbientOpen(true)}
-        onOpenSharedLink={() => setIsSharedOpen(true)}
-        onStartDemo={handleStartDemo}
+    <>
+      <HomeScreen
+        recent={visibleRecent}
+        demoCover={DEMO_ALBUM.coverPhotoBaseUrl}
+        demoCount={DEMO_ITEMS.length}
+        ambientStatus={ambient.status}
+        googleCount={ambient.items.length || ambient.status.itemCount}
+        googleCover={googleCover}
+        notice={notice}
+        onDismissNotice={() => setNotice(null)}
+        onPlayDemo={playDemo}
+        onPlayGoogle={playGoogle}
+        onPlayRecent={playRecent}
+        onConnect={ambient.connect}
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-6 lg:px-12 py-8 flex flex-col gap-8">
-        {!ambient.isReady && (
-          <div className="ambient-glass rounded-3xl p-6 lg:p-8 flex flex-col md:flex-row items-center justify-between gap-6 border border-amber-500/20 shadow-2xl">
-            <div className="flex flex-col gap-2 max-w-2xl">
-              <span className="text-amber-400 font-bold uppercase tracking-wider text-xs">
-                Welcome to LuminaFrame
-              </span>
-              <h2 className="text-2xl lg:text-3xl font-black text-white">
-                Transform your Smart TV into a Google Photos Ambient Canvas
-              </h2>
-              <p className="text-slate-300 text-sm lg:text-base leading-relaxed">
-                Pair this screen with your Google Photos account from your phone to show your own
-                photos and videos, or try the curated demo albums right now.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-3 shrink-0">
-              <button
-                onClick={() => setIsAmbientOpen(true)}
-                className="px-6 py-3.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold rounded-2xl flex items-center gap-2 shadow-xl transition tv-focus-target cursor-pointer text-base"
-              >
-                <Images className="w-5 h-5" />
-                <span>{needsSetupPrompt ? 'Finish Setup' : 'Use My Photos'}</span>
-              </button>
-              <button
-                onClick={handleStartDemo}
-                className="px-6 py-3.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-2xl border border-slate-700 flex items-center gap-2 transition tv-focus-target cursor-pointer text-base"
-              >
-                <Sparkles className="w-5 h-5 text-amber-400" />
-                <span>Launch Demo Now</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
-          <div>
-            <h2 className="text-xl lg:text-2xl font-bold text-white flex items-center gap-2">
-              <span>{ambient.isReady ? 'Your Albums' : 'Featured Albums'}</span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Select any album to start full-screen slideshow with ambient clock, weather &amp;
-              blur backdrop.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-900 px-3.5 py-1.5 rounded-xl border border-slate-800">
-            <Tv className="w-4 h-4 text-amber-400" />
-            <span>TV Remote: Arrow Keys navigate • OK/Enter opens album • Back exits</span>
-          </div>
+      {isLoading && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+          <div className="w-14 h-14 border-4 border-amber-400 border-t-transparent rounded-full animate-spin" />
+          <p className="text-xl font-bold text-white">Loading album…</p>
         </div>
-
-        <AlbumGrid
-          albums={displayedAlbums}
-          isLoading={ambient.isLoadingItems}
-          error={albumError || ambient.itemsError}
-          onSelectAlbum={handleSelectAlbum}
-          onStartDemo={handleStartDemo}
-        />
-      </main>
-
-      {isAmbientOpen && (
-        <AmbientSetup
-          status={ambient.status}
-          onClose={() => setIsAmbientOpen(false)}
-          onConnect={ambient.connect}
-          onDisconnect={ambient.disconnect}
-          onUseSharedLink={() => {
-            setIsAmbientOpen(false);
-            setIsSharedOpen(true);
-          }}
-        />
       )}
 
       {isSharedOpen && (
         <SharedAlbumModal
           onClose={() => setIsSharedOpen(false)}
-          error={albumError}
-          onLoadSharedAlbum={handleLoadSharedAlbum}
-          isLoading={isLoadingShared}
+          error={sharedError}
+          onLoadSharedAlbum={handleSharedSubmit}
+          isLoading={isLoading}
         />
       )}
 
@@ -212,8 +187,23 @@ export const App: React.FC = () => {
           onClose={() => setIsSettingsOpen(false)}
           config={config}
           onSaveConfig={setConfig}
+          googleConnected={ambient.isReady || ambient.status.phase === 'awaiting_sources'}
+          onDisconnectGoogle={() => {
+            ambient.disconnect().catch(() => {});
+            setIsSettingsOpen(false);
+          }}
+          onOpenSharedLink={() => {
+            setIsSettingsOpen(false);
+            setSharedError(null);
+            setIsSharedOpen(true);
+          }}
+          hasRecent={recent.length > 0}
+          onClearRecent={() => {
+            clearRecentAlbums();
+            setRecent([]);
+          }}
         />
       )}
-    </div>
+    </>
   );
 };

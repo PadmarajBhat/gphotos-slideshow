@@ -82,7 +82,7 @@ Or skip installing and use the public version at **https://padmarajbhat.github.i
 ```bash
 npm run dev
 ```
-Open `http://localhost:3000` and select **Launch Demo Now**. Demo albums and shared-album links work without the helper.
+Open `http://localhost:3000` and select **Try the demo**. Demo albums and shared-album links work without the helper.
 
 ### Build for production
 ```bash
@@ -142,12 +142,13 @@ Then open `http://localhost:4000`, or the machine's LAN address from the TV.
 
 ### 4. Pair the frame
 
-1. Select **Use My Photos**, then **Pair This Frame**.
-2. Scan the QR code with your phone and enter the short code shown on the TV.
-3. Scan the second QR code to open this frame's settings in the Google Photos app, and choose which albums it may show.
-4. The screen updates by itself. Your albums appear as **Your Google Photos**.
+There's nothing to click. The home screen shows a QR code as soon as it opens.
 
-To change albums later, scan the settings QR code again from the dialog. To revoke this machine's access, select **Disconnect This Frame**.
+1. Scan the QR code with your phone and enter the short code shown on the TV.
+2. A second QR code appears. Scan it to open this frame's settings in the Google Photos app, and choose which albums it may show.
+3. The screen updates by itself, and the QR is replaced by **Your Google Photos**.
+
+To disconnect this frame, open **Settings** (the gear, top right) and choose **Disconnect Google Photos**.
 
 ---
 
@@ -175,7 +176,7 @@ Already wired up in `.github/workflows/deploy-pages.yml`. One-time setup:
 
 Every push to `master` runs the tests, builds, and publishes to **https://padmarajbhat.github.io/gphotos-slideshow/**. The workflow sets the base path from the repository name automatically, so renaming the repo just works.
 
-On the public site, **Use My Photos** explains that the full library needs the home version, and offers the shared-album link instead.
+On the public site, shared-album links are under **Settings → Play a shared album link**.
 
 ### Home device
 
@@ -252,8 +253,8 @@ LuminaFrame has no cloud service. The helper runs on your hardware. Photos strea
 **Never stored:** photos, videos, thumbnails, access tokens. No service worker, no image cache.
 
 **Stored locally:**
-- `localStorage` — your slideshow preferences (`luminaframe_config`)
-- `server/.tokens.json` — the Google **refresh token** and this frame's device id, written with `0600` permissions so the frame survives a reboot without re-pairing. Gitignored. Delete the file, or select **Disconnect This Frame**, to remove it.
+- `localStorage` — your slideshow preferences (`luminaframe_config`), and the last three albums played on that screen (`luminaframe_recent`), including any shared-album link, so they can be resumed. Clear them under **Settings → Clear recently played**.
+- `server/.tokens.json` — the Google **refresh token** and this frame's device id, written with `0600` permissions so the frame survives a reboot without re-pairing. Gitignored. Delete the file, or use **Settings → Disconnect Google Photos**, to remove it.
 
 ---
 

@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { SlideshowConfig, TransitionType } from '../types';
 import { useFocusTrap } from '../hooks/useFocusTrap';
-import { X, Clock, Shuffle, Thermometer, Sliders, KeyRound, Eye } from 'lucide-react';
+import { X, Clock, Shuffle, Thermometer, Sliders, Eye, Link2, Unplug, History } from 'lucide-react';
 
 interface SettingsModalProps {
   onClose: () => void;
   config: SlideshowConfig;
   onSaveConfig: (updated: SlideshowConfig) => void;
+  onOpenSharedLink?: () => void;
+  googleConnected?: boolean;
+  onDisconnectGoogle?: () => void;
+  hasRecent?: boolean;
+  onClearRecent?: () => void;
 }
 
 const HUD_TOGGLES: { key: keyof SlideshowConfig; label: string }[] = [
@@ -23,6 +28,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onClose,
   config,
   onSaveConfig,
+  onOpenSharedLink,
+  googleConnected = false,
+  onDisconnectGoogle,
+  hasRecent = false,
+  onClearRecent,
 }) => {
   const [localConfig, setLocalConfig] = useState<SlideshowConfig>(config);
   const dialogRef = useFocusTrap<HTMLDivElement>(onClose);
@@ -187,15 +197,38 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
         </div>
 
-        {/* 5. Where Google credentials now live */}
-        <div className="flex items-start gap-2 p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 text-xs text-slate-400 leading-relaxed">
-          <KeyRound className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
-          <span>
-            Google sign-in is handled by the LuminaFrame helper on this machine, not by this
-            page — a browser is not allowed to hold the credentials the Photos Ambient API
-            requires. Use <strong className="text-slate-300">Use My Photos</strong> to pair or
-            unpair this frame.
-          </span>
+        {/* 5. Sources and history - the controls the simplified home screen hides */}
+        <div className="flex flex-col gap-2">
+          {onOpenSharedLink && (
+            <button
+              type="button"
+              onClick={onOpenSharedLink}
+              className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 text-sm font-semibold tv-focus-target"
+            >
+              <Link2 className="w-4 h-4 text-amber-400" />
+              Play a shared album link
+            </button>
+          )}
+          {googleConnected && onDisconnectGoogle && (
+            <button
+              type="button"
+              onClick={onDisconnectGoogle}
+              className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 text-sm font-semibold hover:text-red-300 tv-focus-target"
+            >
+              <Unplug className="w-4 h-4 text-amber-400" />
+              Disconnect Google Photos
+            </button>
+          )}
+          {hasRecent && onClearRecent && (
+            <button
+              type="button"
+              onClick={onClearRecent}
+              className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 text-sm font-semibold tv-focus-target"
+            >
+              <History className="w-4 h-4 text-amber-400" />
+              Clear recently played
+            </button>
+          )}
         </div>
 
         <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-800">

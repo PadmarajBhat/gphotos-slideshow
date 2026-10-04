@@ -10,6 +10,9 @@ import { createDevice, getDevice, listAllMediaItems, MEDIA_REFRESH_MS } from './
 
 const DEVICE_POLL_MS = 5000;
 
+/** Don't hand out a code with less than a minute left; issue a fresh one. */
+const PAIRING_REUSE_MARGIN_MS = 60 * 1000;
+
 /**
  * Owns the whole Ambient lifecycle: pairing, device creation, waiting for the
  * user to choose albums, and keeping the media list fresh. The browser only
@@ -36,6 +39,8 @@ export function createAmbientState() {
   let pairingTimer = null;
   let devicePollTimer = null;
   let mediaTimer = null;
+  let pairingRequest = null;
+  let pairingDeadline = 0;
   let quotaDay = new Date().toDateString();
 
   const tokens = createTokenProvider({
@@ -160,9 +165,25 @@ export function createAmbientState() {
   async function beginPairing() {
     if (state.phase === 'unconfigured') return snapshot();
 
+    // The home screen requests a code automatically, so several screens - or
+    // one screen re-rendering - can ask at once. Reuse the code already on
+    // display instead of invalidating it, and share an in-flight request.
+    if (pairingRequest) return pairingRequest;
+    const codeStillValid = Date.now() < pairingDeadline - PAIRING_REUSE_MARGIN_MS;
+    if (state.phase === 'pairing' && state.userCode && codeStillValid) return snapshot();
+    if (state.phase === 'ready' || state.phase === 'awaiting_sources') return snapshot();
+
+    pairingRequest = startPairing().finally(() => {
+      pairingRequest = null;
+    });
+    return pairingRequest;
+  }
+
+  async function startPairing() {
     stopTimers();
     state.phase = 'pairing';
     state.message = null;
+    state.userCode = null;
 
     try {
       const code = await requestDeviceCode();
@@ -170,6 +191,7 @@ export function createAmbientState() {
       state.verificationUrl = code.verificationUrl;
 
       const deadline = Date.now() + code.expiresIn * 1000;
+      pairingDeadline = deadline;
       let intervalMs = code.intervalSeconds * 1000;
 
       const tick = async () => {

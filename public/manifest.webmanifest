@@ -1,6 +1,6 @@
 {
-  "name": "LuminaFrame — Ambient Photo Frame",
-  "short_name": "LuminaFrame",
+  "name": "Your Photo Frame",
+  "short_name": "Photo Frame",
   "description": "Ambient Google Photos slideshow for TVs, tablets and phones.",
   "start_url": ".",
   "scope": ".",

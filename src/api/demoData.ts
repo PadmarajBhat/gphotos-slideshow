@@ -1,23 +1,6 @@
 import { Album, MediaItem } from '../types';
 
-export const DEMO_ALBUMS: Album[] = [
-  {
-    id: 'demo-wonders-world',
-    title: 'Wonders of the World & Nature',
-    mediaItemsCount: '5',
-    isDemo: true,
-    coverPhotoBaseUrl: 'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1200&q=80',
-  },
-  {
-    id: 'demo-coastal-serenity',
-    title: 'Coastal Serenity & Sunsets',
-    mediaItemsCount: '2',
-    isDemo: true,
-    coverPhotoBaseUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80',
-  },
-];
-
-export const DEMO_MEDIA_MAP: Record<string, MediaItem[]> = {
+const DEMO_SETS: Record<string, MediaItem[]> = {
   'demo-wonders-world': [
     {
       id: 'demo-taj-mahal',
@@ -195,4 +178,16 @@ export const DEMO_MEDIA_MAP: Record<string, MediaItem[]> = {
       },
     },
   ],
+};
+
+/** The curated sets play as one demo, so the home screen has a single thing to try. */
+export const DEMO_ITEMS: MediaItem[] = Object.values(DEMO_SETS).flat();
+
+export const DEMO_ALBUM: Album = {
+  id: 'demo',
+  title: 'Demo',
+  mediaItemsCount: String(DEMO_ITEMS.length),
+  isDemo: true,
+  coverPhotoBaseUrl:
+    'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1200&q=80',
 };

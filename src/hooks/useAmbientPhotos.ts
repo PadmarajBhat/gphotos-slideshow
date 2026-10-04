@@ -34,6 +34,10 @@ export function useAmbientPhotos() {
         phase === 'pairing' || phase === 'awaiting_sources' || phase === 'unconfigured';
       return isSettingUp ? ACTIVE_POLL_MS : IDLE_POLL_MS;
     },
+    // A photo frame must keep going when the browser reports the page as
+    // hidden (TV screensavers and overlays do this). Paused polling left a
+    // pairing code sitting on the helper, never shown.
+    refetchIntervalInBackground: true,
   });
 
   const status = statusQuery.data ?? OFFLINE_STATUS;
@@ -44,6 +48,8 @@ export function useAmbientPhotos() {
     queryFn: fetchAmbientMedia,
     enabled: isReady,
     refetchInterval: MEDIA_POLL_MS,
+    // Google's media URLs expire after an hour, hidden page or not.
+    refetchIntervalInBackground: true,
     staleTime: MEDIA_POLL_MS,
   });
 
