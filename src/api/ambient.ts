@@ -116,11 +116,13 @@ export async function fetchAmbientStatus(): Promise<AmbientStatus> {
 }
 
 export function startAmbientPairing(): Promise<AmbientStatus> {
-  return request<AmbientStatus>('/api/ambient/connect', { method: 'POST' });
+  // An explicit empty body guarantees Content-Length: 0, which Cloud Run's
+  // front end requires on POST; some browsers omit it when there's no body.
+  return request<AmbientStatus>('/api/ambient/connect', { method: 'POST', body: '' });
 }
 
 export function disconnectAmbient(): Promise<AmbientStatus> {
-  return request<AmbientStatus>('/api/ambient/disconnect', { method: 'POST' });
+  return request<AmbientStatus>('/api/ambient/disconnect', { method: 'POST', body: '' });
 }
 
 export async function fetchAmbientMedia(): Promise<MediaItem[]> {

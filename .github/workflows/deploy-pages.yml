@@ -41,6 +41,8 @@ jobs:
           VITE_BASE: /${{ github.event.repository.name }}/
           VITE_STATIC_HOSTING: 'true'
           VITE_REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+          # Public URL of the Cloud Run photo helper (not a secret).
+          VITE_HELPER_URL: https://photo-frame-helper-127793539988.us-central1.run.app
         run: npm run build
 
       # Pages serves 404.html for unknown paths; point it at the app.

@@ -88,7 +88,8 @@ export function createHandler({ sessions, allowedOrigins = [], distDir, now = ()
     }
 
     try {
-      if (pathname === '/healthz') return sendJson(res, 200, { ok: true });
+      // Not /healthz: Cloud Run's front end reserves that path for itself.
+      if (pathname === '/api/health') return sendJson(res, 200, { ok: true });
 
       if (pathname === '/api/fetch-shared-album' && req.method === 'GET') {
         return handleSharedAlbumRequest(req, res);

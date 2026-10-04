@@ -27,7 +27,7 @@ describe('Helper HTTP layer', () => {
   const get = (path, headers = {}) => fetch(`${base}${path}`, { headers });
 
   it('answers health checks', async () => {
-    expect((await get('/healthz')).status).toBe(200);
+    expect((await get('/api/health')).status).toBe(200);
   });
 
   it('rejects requests without a valid TV session secret', async () => {
