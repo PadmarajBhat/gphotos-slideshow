@@ -1,11 +1,11 @@
 # LuminaFrame 🖼️✨
 > **An Ambient Google Photos Slideshow for Smart TVs & Screens**
 
-[![CI](https://github.com/your-username/google-photos-slideshow/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/google-photos-slideshow/actions/workflows/ci.yml)
+[![CI](https://github.com/PadmarajBhat/gphotos-slideshow/actions/workflows/ci.yml/badge.svg)](https://github.com/PadmarajBhat/gphotos-slideshow/actions/workflows/ci.yml)
 [![React](https://img.shields.io/badge/React-19-blue.svg)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-6-purple.svg)](https://vitejs.dev/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
 
 **LuminaFrame** turns a Smart TV (Sony Android TV / Google TV, Samsung, LG, Fire TV) or any connected display into an ambient digital photo frame powered by your **Google Photos** library.
 
@@ -71,8 +71,12 @@ The Ambient API requires an OAuth client of type *TVs and Limited Input devices*
 
 ### Install
 ```bash
+git clone https://github.com/PadmarajBhat/gphotos-slideshow.git
+cd gphotos-slideshow
 npm install
 ```
+
+Or skip installing and use the public version at **https://padmarajbhat.github.io/gphotos-slideshow/**: demo albums and shared-album links, on any TV or phone.
 
 ### Try it immediately, no setup
 ```bash
@@ -167,9 +171,9 @@ The helper has **no login**. It is built for one frame and one Google account. H
 Already wired up in `.github/workflows/deploy-pages.yml`. One-time setup:
 
 1. In your repository: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-2. Push to `main`.
+2. Push to `master`.
 
-Every push to `main` runs the tests, builds, and publishes to `https://<your-username>.github.io/<repo-name>/`. The workflow sets the base path from the repository name automatically, so renaming the repo just works.
+Every push to `master` runs the tests, builds, and publishes to **https://padmarajbhat.github.io/gphotos-slideshow/**. The workflow sets the base path from the repository name automatically, so renaming the repo just works.
 
 On the public site, **Use My Photos** explains that the full library needs the home version, and offers the shared-album link instead.
 
@@ -274,4 +278,4 @@ npm run verify    # lint + test + build
 ---
 
 ## 📄 License
-MIT — see [LICENSE](LICENSE).
+Licensed under the [Apache License 2.0](LICENSE).

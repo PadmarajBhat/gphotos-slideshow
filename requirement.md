@@ -19,7 +19,7 @@
 
 | ID | Requirement | Source | Acceptance criteria | Status |
 |---|---|---|---|---|
-| REQ-P1 | The project must be open source. | Explicit | A permissive licence file is present in the repository. | ✅ Met — MIT (`LICENSE`) |
+| REQ-P1 | The project must be open source. | Explicit | A permissive licence file is present in the repository. | ✅ Met — Apache License 2.0 (`LICENSE`) |
 | REQ-P2 | The application must be web-based. | Explicit | Runs in a standard browser from a URL. No native install, no app-store distribution. | ✅ Met — React 19 + Vite SPA |
 | REQ-P3 | It must run on the target Sony Bravia TV (W95C class) and on any Android TV or other screen capable of running the web app. | Explicit | A production bundle can be built and served; the app loads and is fully operable in a TV browser using only the TV remote. | ✅ Met — production build succeeds; full D-pad operability implemented and tested. On-device W95C verification still outstanding. |
 | REQ-P4 | The application must be very lightweight. | Explicit | Initial payload small enough for a TV browser to load quickly over home broadband. | ✅ Met — 339 KB JS + 26 KB CSS, ~102 KB gzipped |
