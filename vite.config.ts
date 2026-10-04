@@ -107,6 +107,9 @@ function sharedAlbumProxyPlugin(): Plugin {
 }
 
 export default defineConfig({
+  // GitHub Pages serves a project site from /<repo-name>/, so the deploy
+  // workflow sets VITE_BASE. Self-hosted builds (npm start) serve from root.
+  base: process.env.VITE_BASE ?? '/',
   plugins: [react(), sharedAlbumProxyPlugin()],
   test: {
     globals: true,

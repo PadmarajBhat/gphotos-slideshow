@@ -1,5 +1,5 @@
 import React from 'react';
-import { AmbientStatus } from '../api/ambient';
+import { AmbientStatus, IS_STATIC_HOSTING, REPO_URL } from '../api/ambient';
 import { QrCode } from './QrCode';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import {
@@ -17,6 +17,7 @@ interface AmbientSetupProps {
   onClose: () => void;
   onConnect: () => void;
   onDisconnect: () => void;
+  onUseSharedLink?: () => void;
 }
 
 const Step: React.FC<{ n: number; title: string; children: React.ReactNode }> = ({
@@ -40,6 +41,7 @@ export const AmbientSetup: React.FC<AmbientSetupProps> = ({
   onClose,
   onConnect,
   onDisconnect,
+  onUseSharedLink,
 }) => {
   const dialogRef = useFocusTrap<HTMLDivElement>(onClose);
 
@@ -78,10 +80,38 @@ export const AmbientSetup: React.FC<AmbientSetupProps> = ({
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
               <span>{status.message}</span>
             </div>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              The helper runs on this machine only. It holds your Google credentials, which a
-              browser is not allowed to keep, and never sends your photos anywhere.
-            </p>
+
+            {IS_STATIC_HOSTING ? (
+              <>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  You can still play any Google Photos album right now: share it from the Google
+                  Photos app and paste the link here. No sign-in needed.
+                </p>
+                {onUseSharedLink && (
+                  <button
+                    onClick={onUseSharedLink}
+                    className="w-full py-3 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold rounded-xl text-sm shadow-lg transition tv-focus-target"
+                  >
+                    Use a Shared Album Link
+                  </button>
+                )}
+                {REPO_URL && (
+                  <a
+                    href={`${REPO_URL}#-connecting-your-own-google-photos`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-amber-300 underline text-center tv-focus-target rounded"
+                  >
+                    How to run LuminaFrame at home for your full library
+                  </a>
+                )}
+              </>
+            ) : (
+              <p className="text-xs text-slate-500 leading-relaxed">
+                The helper runs on this machine only. It holds your Google credentials, which a
+                browser is not allowed to keep, and never sends your photos anywhere.
+              </p>
+            )}
           </div>
         )}
 

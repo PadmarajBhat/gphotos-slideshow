@@ -191,6 +191,10 @@ export const App: React.FC = () => {
           onClose={() => setIsAmbientOpen(false)}
           onConnect={ambient.connect}
           onDisconnect={ambient.disconnect}
+          onUseSharedLink={() => {
+            setIsAmbientOpen(false);
+            setIsSharedOpen(true);
+          }}
         />
       )}
 

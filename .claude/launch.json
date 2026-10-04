@@ -14,6 +14,13 @@
       "runtimeArgs": ["run", "helper"],
       "port": 4000,
       "autoPort": false
+    },
+    {
+      "name": "luminaframe-pages-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "preview", "--base", "/luminaframe/", "--port", "4173", "--strictPort"],
+      "port": 4173,
+      "url": "http://localhost:4173"
     }
   ]
 }

@@ -2,10 +2,12 @@
 
 interface ImportMetaEnv {
   /**
-   * Optional deployment-wide Google OAuth Web Client ID. When set at build time
-   * users do not have to paste their own ID in Settings.
+   * Set to "true" by the GitHub Pages workflow. A static host has no helper
+   * process, so the Google Photos source is explained rather than attempted.
    */
-  readonly VITE_GOOGLE_CLIENT_ID?: string;
+  readonly VITE_STATIC_HOSTING?: string;
+  /** Repository URL, injected at build time to link to self-hosting docs. */
+  readonly VITE_REPO_URL?: string;
 }
 
 interface ImportMeta {

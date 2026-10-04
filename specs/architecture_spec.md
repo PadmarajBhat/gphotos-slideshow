@@ -136,3 +136,14 @@ The browser calls only `/api/ambient/{status,connect,disconnect,media}`. Vite pr
 | Demo | None | Fixed | Play | Yes |
 
 The shared-album limitation is inherent: Google embeds only an initial batch of photos in the album page and lazy-loads the rest through an undocumented internal RPC. It is retained as the zero-setup path, with its limits stated in the UI.
+
+## 8. Deployment Topology (2026-10-04)
+
+Two deployment targets, deliberately unequal:
+
+- **GitHub Pages** (`.github/workflows/deploy-pages.yml`): static build with `VITE_STATIC_HOSTING=true`. Demo and shared-album sources only. The app skips `/api/ambient` entirely in this mode and explains that the full library needs the home version. Base path comes from the repository name.
+- **Home device** (`npm start`): the helper serves the built app and `/api/ambient/*` from one process on port 4000, reachable on the LAN.
+
+**The helper must never be exposed publicly.** It has no authentication and is single-tenant by design: one frame, one Google account, one refresh token. A public instance would serve the owner's photos to anyone with the URL. Remote access, if wanted, must go through an authenticating layer (e.g. Tailscale), never an open port.
+
+Mobile install is via `public/manifest.webmanifest` (`display: fullscreen`). All manifest paths are relative so it resolves under both `/` and `/<repo>/`.

@@ -147,11 +147,87 @@ To change albums later, scan the settings QR code again from the dialog. To revo
 
 ---
 
-## 📺 Running on a Smart TV
+## 🌍 Deployment
 
-1. **TV browser** — install a browser (Open Browser, Puffin TV) and open your LAN address, e.g. `http://192.168.1.100:4000`.
-2. **Cast a tab** — open LuminaFrame on a laptop and cast to the TV.
-3. **Mini PC / Raspberry Pi** — run `npm start` on a device connected over HDMI, in kiosk mode. This is the best fit: the helper and the display live on the same box.
+LuminaFrame deploys in two parts, on purpose.
+
+| | Public site (GitHub Pages) | Home device |
+|---|---|---|
+| Reachable from | Anywhere, any TV or phone | Devices on your home Wi-Fi |
+| Demo + shared-album links | ✅ | ✅ |
+| Your Google Photos + videos | ❌ | ✅ |
+| Cost | Free | Free on hardware you own |
+
+### ⚠️ Never expose the helper to the internet
+
+The helper has **no login**. It is built for one frame and one Google account. Hosted on a public URL, **anyone who finds that URL would see your photos**. Keep it on your home network. If you want it reachable while away, put it behind something that authenticates first, such as [Tailscale](https://tailscale.com/), rather than opening a port.
+
+### Public site — GitHub Pages
+
+Already wired up in `.github/workflows/deploy-pages.yml`. One-time setup:
+
+1. In your repository: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+2. Push to `main`.
+
+Every push to `main` runs the tests, builds, and publishes to `https://<your-username>.github.io/<repo-name>/`. The workflow sets the base path from the repository name automatically, so renaming the repo just works.
+
+On the public site, **Use My Photos** explains that the full library needs the home version, and offers the shared-album link instead.
+
+### Home device
+
+Any always-on machine on your Wi-Fi works: a Raspberry Pi, an old laptop, or a mini PC behind the TV.
+
+```bash
+npm ci
+npm run build
+npm start
+```
+
+Then on the TV or phone, open `http://<that-machine's-LAN-IP>:4000`. Find the IP with `ipconfig` (Windows) or `hostname -I` (Linux).
+
+**Keep it running across reboots.** A photo frame that stops after a power cut isn't much of a frame:
+
+<details>
+<summary><b>Raspberry Pi / Linux</b> — systemd service</summary>
+
+Create `/etc/systemd/system/luminaframe.service`:
+
+```ini
+[Unit]
+Description=LuminaFrame
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/home/pi/luminaframe
+ExecStart=/usr/bin/npm start
+Restart=always
+User=pi
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl enable --now luminaframe
+```
+</details>
+
+<details>
+<summary><b>Windows</b> — start on login with Task Scheduler</summary>
+
+1. Open **Task Scheduler → Create Task**.
+2. **Triggers → New → At log on**.
+3. **Actions → New → Start a program**: `npm`, arguments `start`, start in: your LuminaFrame folder.
+4. **Settings**: tick *If the task fails, restart every 1 minute*.
+</details>
+
+## 📱 Running on a TV or phone
+
+- **Phone or tablet** — open the site and choose **Add to Home Screen**. It launches full-screen like an app.
+- **Android TV / Google TV** (e.g. Sony Bravia) — install a browser such as *Open Browser* or *Puffin TV* from the Play Store, open the address, and use the remote's D-pad.
+- **Cast** — open the site on a laptop and cast the tab to the TV.
+- **Kiosk** — a Raspberry Pi on HDMI running both the helper and a full-screen browser is the most reliable frame of all.
 
 ---
 

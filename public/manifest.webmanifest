@@ -1,0 +1,19 @@
+{
+  "name": "LuminaFrame — Ambient Photo Frame",
+  "short_name": "LuminaFrame",
+  "description": "Ambient Google Photos slideshow for TVs, tablets and phones.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
