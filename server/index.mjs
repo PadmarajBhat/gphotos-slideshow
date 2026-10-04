@@ -3,6 +3,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve } from 'node:path';
 import { config, projectRoot } from './env.mjs';
 import { createAmbientState } from './state.mjs';
+import { handleSharedAlbumRequest } from './sharedAlbumProxy.mjs';
 
 const distDir = resolve(projectRoot, 'dist');
 
@@ -94,6 +95,12 @@ const server = createServer(async (req, res) => {
         lastRefreshedAt: snapshot.lastRefreshedAt,
         phase: snapshot.phase,
       });
+    }
+
+    // Shared-album pages are fetched here, server-side, so a home install
+    // never depends on a public CORS relay.
+    if (pathname === '/api/fetch-shared-album' && req.method === 'GET') {
+      return handleSharedAlbumRequest(req, res);
     }
 
     if (pathname.startsWith('/api/')) {

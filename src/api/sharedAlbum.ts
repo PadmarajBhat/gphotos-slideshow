@@ -1,11 +1,12 @@
 import { Album, MediaItem } from '../types';
+import { IS_STATIC_HOSTING } from './ambient';
 
 const ALLOWED_HOSTS = ['photos.app.goo.gl', 'photos.google.com', 'goo.gl'];
 
 /**
- * Public CORS gateway used only when the app is served as a static bundle and
- * the dev-server proxy is therefore unavailable. This sends the shared album
- * URL to a third party, so it is disclosed in the README and in the UI.
+ * Public CORS relay, used only when no server of our own is reachable (the
+ * GitHub Pages build). It sees the album URL and is unreliable on large
+ * albums, so it is a last resort, disclosed in the README.
  */
 const CORS_GATEWAY = 'https://api.allorigins.win/raw?url=';
 
@@ -45,7 +46,13 @@ export function extractAlbumTitle(html: string): string {
     html.match(/<meta\s+property="og:title"\s+content="([^"]+)"/i) ||
     html.match(/<title>([^<]+)<\/title>/i);
   const rawTitle = titleMatch ? titleMatch[1] : 'Shared Google Photos Album';
-  return rawTitle.replace(/ - Google Photos$/i, '').trim() || 'Shared Google Photos Album';
+  const cleaned = rawTitle
+    .replace(/ - Google Photos$/i, '')
+    // Google appends " · Sep 5, 2022 – Oct 3, 2026 📸" to album titles; the
+    // range is noise on a caption, and is repeated on every photo.
+    .replace(/\s*[·•]\s*[A-Z][a-z]{2,8}\.?\s+\d{1,2},?\s+\d{4}.*$/u, '')
+    .trim();
+  return cleaned || 'Shared Google Photos Album';
 }
 
 export function extractPhotoBases(html: string): string[] {
@@ -73,25 +80,43 @@ export function extractPhotoBases(html: string): string[] {
   return Array.from(uniqueBases);
 }
 
+/** Free relays can hang far longer than anyone will watch a spinner. */
+const RELAY_TIMEOUT_MS = 25000;
+
+export const RELAY_FAILED_MESSAGE =
+  "This public site couldn't load that album. It has to read albums through a free public relay, " +
+  'which often times out on large albums and is blocked on many workplace networks. ' +
+  'Shared links work reliably in the home version of LuminaFrame, which fetches albums directly from Google.';
+
 async function loadAlbumHtml(target: URL): Promise<string> {
   const encoded = encodeURIComponent(target.toString());
 
-  // 1. Local Vite proxy (development). Validated, because a static host
-  //    answers this path with the SPA shell instead of a 404.
-  try {
-    const res = await fetch(`/api/fetch-shared-album?url=${encoded}`);
-    if (res.ok) {
-      const html = await res.text();
-      if (looksLikeAlbumHtml(html)) return html;
+  // 1. Our own server: the dev server or the home helper fetches Google
+  //    directly. Validated, because a static host may answer this path with
+  //    the SPA shell. Skipped on GitHub Pages, where no server exists.
+  if (!IS_STATIC_HOSTING) {
+    try {
+      const res = await fetch(`/api/fetch-shared-album?url=${encoded}`);
+      if (res.ok) {
+        const html = await res.text();
+        if (looksLikeAlbumHtml(html)) return html;
+      }
+    } catch {
+      // No server reachable - fall through to the public relay.
     }
-  } catch {
-    // Proxy unavailable - fall through to the public gateway.
   }
 
-  // 2. Public CORS gateway (static deployments).
-  const res = await fetch(`${CORS_GATEWAY}${encoded}`);
+  // 2. Public relay: the only option for a purely static deployment.
+  let res: Response;
+  try {
+    res = await fetch(`${CORS_GATEWAY}${encoded}`, {
+      signal: AbortSignal.timeout(RELAY_TIMEOUT_MS),
+    });
+  } catch {
+    throw new Error(RELAY_FAILED_MESSAGE);
+  }
   if (!res.ok) {
-    throw new Error('Could not reach the shared album. Check the link is still shared and your TV is online.');
+    throw new Error(RELAY_FAILED_MESSAGE);
   }
 
   const html = await res.text();

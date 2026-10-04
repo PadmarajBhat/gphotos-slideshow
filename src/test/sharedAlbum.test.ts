@@ -5,6 +5,7 @@ import {
   extractPhotoBases,
   looksLikeAlbumHtml,
   fetchSharedAlbum,
+  RELAY_FAILED_MESSAGE,
 } from '../api/sharedAlbum';
 
 const PHOTO_ID = 'AbCdEfGhIjKlMnOpQrStUvWxYz0123456789AbCdEfGhIjKlMnOpQrStUv';
@@ -61,6 +62,16 @@ describe('Shared album HTML parsing', () => {
     expect(extractAlbumTitle(albumHtml([PHOTO_ID]))).toBe('Kerala Trip');
   });
 
+  it('drops the date range Google appends to album titles', () => {
+    const html = '<meta property="og:title" content="Krishna · Sep 5, 2022 – Oct 3, 2026 📸">';
+    expect(extractAlbumTitle(html)).toBe('Krishna');
+  });
+
+  it('keeps a title that merely contains a dot separator', () => {
+    const html = '<meta property="og:title" content="Goa · Beach Days">';
+    expect(extractAlbumTitle(html)).toBe('Goa · Beach Days');
+  });
+
   it('falls back to a generic title when no title tag is present', () => {
     expect(extractAlbumTitle('<html><body>no title</body></html>')).toBe('Shared Google Photos Album');
   });
@@ -115,6 +126,34 @@ describe('fetchSharedAlbum', () => {
     } as unknown as Response);
 
     await expect(fetchSharedAlbum('https://photos.app.goo.gl/abc123')).rejects.toThrow(/No photos were found/i);
+  });
+
+  it('explains the relay failure instead of blaming the link or the device', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock
+      .mockRejectedValueOnce(new Error('no server')) // no /api route reachable
+      .mockResolvedValueOnce({ ok: false, status: 408, text: async () => '' } as unknown as Response);
+
+    await expect(fetchSharedAlbum('https://photos.app.goo.gl/abc123')).rejects.toThrow(RELAY_FAILED_MESSAGE);
+  });
+
+  it('treats a relay that hangs or is blocked the same way', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock
+      .mockRejectedValueOnce(new Error('no server'))
+      .mockRejectedValueOnce(new DOMException('The operation timed out.', 'TimeoutError'));
+
+    await expect(fetchSharedAlbum('https://photos.app.goo.gl/abc123')).rejects.toThrow(RELAY_FAILED_MESSAGE);
+  });
+
+  it('prefers its own server and never touches the relay when that works', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValueOnce({ ok: true, text: async () => albumHtml([PHOTO_ID]) } as unknown as Response);
+
+    await fetchSharedAlbum('https://photos.app.goo.gl/abc123');
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(String(fetchMock.mock.calls[0][0])).toContain('/api/fetch-shared-album');
   });
 
   it('never contacts the network for an invalid host', async () => {
