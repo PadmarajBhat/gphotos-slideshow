@@ -41,10 +41,11 @@ export function useAmbientPhotos() {
   });
 
   const status = statusQuery.data ?? OFFLINE_STATUS;
-  const isReady = status.phase === 'ready' && status.itemCount > 0;
+  // The helper fetches media on first request, so 'ready' alone starts it.
+  const isReady = status.phase === 'ready';
 
   const mediaQuery = useQuery({
-    queryKey: ['ambientMedia', status.lastRefreshedAt],
+    queryKey: ['ambientMedia'],
     queryFn: fetchAmbientMedia,
     enabled: isReady,
     refetchInterval: MEDIA_POLL_MS,

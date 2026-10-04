@@ -36,6 +36,20 @@ export default tseslint.config(
     },
   },
   {
+    // The helper is plain Node ESM; lint it too, not just the TypeScript app.
+    files: ['server/**/*.mjs'],
+    extends: [js.configs.recommended],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: globals.node,
+    },
+    rules: {
+      'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-empty': ['error', { allowEmptyCatch: true }],
+    },
+  },
+  {
     files: ['*.config.{js,ts}', 'vite.config.ts'],
     languageOptions: {
       globals: globals.node,

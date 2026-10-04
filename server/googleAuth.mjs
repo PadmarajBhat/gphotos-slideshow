@@ -6,8 +6,6 @@ const REVOKE_URL = 'https://oauth2.googleapis.com/revoke';
 
 export const AMBIENT_SCOPE = 'profile https://www.googleapis.com/auth/photosambient.mediaitems';
 
-/** Renew a little early; Google access tokens last about an hour. */
-const REFRESH_MARGIN_MS = 5 * 60 * 1000;
 
 async function postForm(url, params) {
   const res = await fetch(url, {
@@ -115,53 +113,4 @@ export async function revokeToken(token) {
   } catch {
     // Best effort: the local copy is dropped regardless.
   }
-}
-
-/**
- * Holds the current access token and renews it on demand, so callers can just
- * await a valid token without tracking expiry themselves.
- */
-export function createTokenProvider({ getRefreshToken, onRefreshFailed }) {
-  let accessToken = null;
-  let expiresAt = 0;
-  let inFlight = null;
-
-  return {
-    set(token, expiry) {
-      accessToken = token;
-      expiresAt = expiry;
-    },
-    clear() {
-      accessToken = null;
-      expiresAt = 0;
-    },
-    async get() {
-      if (accessToken && Date.now() < expiresAt - REFRESH_MARGIN_MS) {
-        return accessToken;
-      }
-
-      const refreshToken = getRefreshToken();
-      if (!refreshToken) return null;
-
-      // Collapse concurrent refreshes into one request.
-      if (!inFlight) {
-        inFlight = refreshAccessToken(refreshToken)
-          .then((result) => {
-            accessToken = result.accessToken;
-            expiresAt = result.expiresAt;
-            return accessToken;
-          })
-          .catch((err) => {
-            accessToken = null;
-            expiresAt = 0;
-            onRefreshFailed?.(err);
-            return null;
-          })
-          .finally(() => {
-            inFlight = null;
-          });
-      }
-      return inFlight;
-    },
-  };
 }

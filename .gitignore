@@ -38,3 +38,4 @@ __pycache__/
 
 # LuminaFrame helper credentials
 server/.tokens.json
+server/.data/

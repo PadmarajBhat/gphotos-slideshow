@@ -5,6 +5,7 @@ import {
   fetchAmbientMedia,
   startAmbientPairing,
   disconnectAmbient,
+  getFrameSession,
 } from '../api/ambient';
 
 function jsonOk(body: unknown) {
@@ -26,7 +27,30 @@ describe('Ambient helper client', () => {
     const status = await fetchAmbientStatus();
 
     expect(status.phase).toBe('offline');
-    expect(status.message).toMatch(/helper is not running/i);
+    expect(status.message).toMatch(/unavailable/i);
+  });
+
+  it("sends this screen's private session secret with every request", async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonOk(OFFLINE_STATUS));
+
+    await fetchAmbientStatus();
+    await startAmbientPairing();
+
+    const headerOf = (call: number) =>
+      ((vi.mocked(fetch).mock.calls[call][1] as RequestInit).headers as Record<string, string>)['X-Frame-Session'];
+    expect(headerOf(0)).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(headerOf(1)).toBe(headerOf(0));
+  });
+
+  it('keeps the same secret across reloads, and replaces a corrupt one', () => {
+    const first = getFrameSession();
+    expect(getFrameSession()).toBe(first);
+    expect(localStorage.getItem('luminaframe_session')).toBe(first);
+
+    localStorage.setItem('luminaframe_session', 'tampered');
+    const replaced = getFrameSession();
+    expect(replaced).not.toBe('tampered');
+    expect(replaced).toMatch(/^[A-Za-z0-9_-]{43}$/);
   });
 
   it('passes through the helper status when it is running', async () => {

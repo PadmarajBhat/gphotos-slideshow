@@ -1,135 +1,58 @@
 import { createServer } from 'node:http';
-import { readFile, stat } from 'node:fs/promises';
-import { extname, join, normalize, resolve } from 'node:path';
-import { config, projectRoot } from './env.mjs';
-import { createAmbientState } from './state.mjs';
-import { handleSharedAlbumRequest } from './sharedAlbumProxy.mjs';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
+import { config, projectRoot, assertConfigured, refreshConfig } from './env.mjs';
+import { parseEncryptionKey, generateEncryptionKey } from './crypto.mjs';
+import { createFileStore } from './stores/fileStore.mjs';
+import { createFirestoreStore } from './stores/firestoreStore.mjs';
+import { createSessionService } from './sessions.mjs';
+import { createHandler } from './app.mjs';
 
-const distDir = resolve(projectRoot, 'dist');
-
-const MIME = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.webp': 'image/webp',
-  '.ico': 'image/x-icon',
-  '.json': 'application/json; charset=utf-8',
-  '.woff2': 'font/woff2',
-};
-
-const ambient = createAmbientState();
-
-function sendJson(res, status, payload) {
-  const body = JSON.stringify(payload);
-  res.writeHead(status, {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Content-Length': Buffer.byteLength(body),
-    'Cache-Control': 'no-store',
-  });
-  res.end(body);
-}
-
-async function serveStatic(req, res, pathname) {
-  // Reject traversal before touching the filesystem.
-  const safePath = normalize(pathname).replace(/^(\.\.[/\\])+/, '');
-  let filePath = join(distDir, safePath);
-
-  if (!filePath.startsWith(distDir)) {
-    res.writeHead(403).end('Forbidden');
-    return;
+/**
+ * Locally, generate an encryption key on first run and keep it beside the
+ * data it protects. On Cloud Run the key must come from Secret Manager:
+ * generating one there would lose every pairing on each new instance.
+ */
+async function resolveEncryptionKey() {
+  if (config.encryptionKey) return parseEncryptionKey(config.encryptionKey);
+  if (config.store === 'firestore') {
+    throw new Error('TOKEN_ENCRYPTION_KEY is required when STORE=firestore.');
   }
-
+  await mkdir(config.dataDir, { recursive: true, mode: 0o700 });
+  const keyFile = join(config.dataDir, 'encryption.key');
   try {
-    const info = await stat(filePath);
-    if (info.isDirectory()) filePath = join(filePath, 'index.html');
+    return parseEncryptionKey((await readFile(keyFile, 'utf8')).trim());
   } catch {
-    // Unknown path: fall back to the SPA entry point.
-    filePath = join(distDir, 'index.html');
-  }
-
-  try {
-    const data = await readFile(filePath);
-    res.writeHead(200, { 'Content-Type': MIME[extname(filePath)] ?? 'application/octet-stream' });
-    res.end(data);
-  } catch {
-    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end(
-      'LuminaFrame is not built yet. Run "npm run build" first, or use "npm run dev" for development.'
-    );
+    const key = generateEncryptionKey();
+    await writeFile(keyFile, key, { mode: 0o600 });
+    return parseEncryptionKey(key);
   }
 }
 
-const server = createServer(async (req, res) => {
-  const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
-  const { pathname } = url;
+const store =
+  config.store === 'firestore'
+    ? createFirestoreStore({ projectId: config.firestoreProject || undefined })
+    : createFileStore(config.dataDir);
 
-  // The browser talks to this helper from the Vite dev origin during development.
-  res.setHeader('Access-Control-Allow-Origin', req.headers.origin ?? '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204).end();
-    return;
-  }
-
-  try {
-    if (pathname === '/api/ambient/status' && req.method === 'GET') {
-      return sendJson(res, 200, ambient.snapshot());
-    }
-
-    if (pathname === '/api/ambient/connect' && req.method === 'POST') {
-      return sendJson(res, 200, await ambient.beginPairing());
-    }
-
-    if (pathname === '/api/ambient/disconnect' && req.method === 'POST') {
-      return sendJson(res, 200, await ambient.disconnect());
-    }
-
-    if (pathname === '/api/ambient/media' && req.method === 'GET') {
-      const snapshot = ambient.snapshot();
-      return sendJson(res, 200, {
-        items: ambient.getMedia(),
-        lastRefreshedAt: snapshot.lastRefreshedAt,
-        phase: snapshot.phase,
-      });
-    }
-
-    // Shared-album pages are fetched here, server-side, so a home install
-    // never depends on a public CORS relay.
-    if (pathname === '/api/fetch-shared-album' && req.method === 'GET') {
-      return handleSharedAlbumRequest(req, res);
-    }
-
-    if (pathname.startsWith('/api/')) {
-      return sendJson(res, 404, { error: `Unknown endpoint ${pathname}` });
-    }
-
-    await serveStatic(req, res, pathname);
-  } catch (err) {
-    console.error('[helper]', err);
-    sendJson(res, 500, { error: err.message });
-  }
+const sessions = createSessionService({
+  store,
+  encryptionKey: await resolveEncryptionKey(),
+  // Re-read .env while unconfigured, so adding credentials needs no restart.
+  configError: () => (assertConfigured() ? (refreshConfig(), assertConfigured()) : null),
 });
 
-server.listen(config.port, () => {
-  const snapshot = ambient.snapshot();
-  console.log(`\n  LuminaFrame helper listening on http://localhost:${config.port}`);
-  console.log(`  Serving built app from ${distDir}`);
+// Cloud Run serves only the API; the app itself is on GitHub Pages.
+const distDir = config.store === 'firestore' ? null : resolve(projectRoot, 'dist');
 
-  if (snapshot.phase === 'unconfigured') {
-    console.log(`\n  ⚠  ${snapshot.message}\n`);
-  } else {
-    console.log('  Google Photos Ambient API ready. Open the app to pair this frame.\n');
-  }
-  ambient.resume();
+const server = createServer(createHandler({ sessions, allowedOrigins: config.allowedOrigins, distDir }));
+
+server.listen(config.port, () => {
+  console.log(`\n  Photo Frame helper on http://localhost:${config.port}  (store: ${store.name})`);
+  if (distDir) console.log(`  Serving the built app from ${distDir}`);
+  const problem = assertConfigured();
+  console.log(problem ? `\n  ⚠  ${problem}\n` : '  Google Photos Ambient API ready.\n');
 });
 
 for (const signal of ['SIGINT', 'SIGTERM']) {
-  process.on(signal, () => {
-    ambient.stop();
-    server.close(() => process.exit(0));
-  });
+  process.on(signal, () => server.close(() => process.exit(0)));
 }

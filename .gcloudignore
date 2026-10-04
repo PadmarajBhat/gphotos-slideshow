@@ -1,0 +1,11 @@
+# Upload only what the helper's container needs to Cloud Build.
+# Deny everything, then allow the Dockerfile and the server folder.
+# This keeps .env, local tokens and local data off Google's servers.
+*
+!Dockerfile
+!server/
+!server/**
+server/test/
+server/.data/
+server/.tokens.json
+**/*.d.mts

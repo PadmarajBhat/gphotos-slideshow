@@ -38,12 +38,21 @@ export const config = {
   clientId: '',
   clientSecret: '',
   port: 4000,
-  deviceName: 'LuminaFrame TV',
+  deviceName: 'Photo Frame',
   // The Ambient API host is overridable because Google's reference pages are
   // inconsistent about whether devices live on photosambient or photoslibrary.
   ambientBase: 'https://photosambient.googleapis.com/v1',
-  tokenFile: resolve(projectRoot, 'server/.tokens.json'),
+  /** 'file' for the home helper, 'firestore' on Cloud Run. */
+  store: 'file',
+  dataDir: resolve(projectRoot, 'server/.data'),
+  firestoreProject: '',
+  /** Base64 32-byte key; required on Cloud Run, generated locally if absent. */
+  encryptionKey: '',
+  /** Browser origins allowed to call the helper cross-origin. */
+  allowedOrigins: [],
 };
+
+const DEFAULT_ORIGINS = 'http://localhost:3000,http://localhost:4000,https://padmarajbhat.github.io';
 
 /**
  * Re-read .env in place. Called again whenever the app is still unconfigured,
@@ -56,9 +65,16 @@ export function refreshConfig() {
   config.clientId = get('GOOGLE_CLIENT_ID');
   config.clientSecret = get('GOOGLE_CLIENT_SECRET');
   config.port = Number(get('PORT', '4000'));
-  config.deviceName = get('AMBIENT_DEVICE_NAME', 'LuminaFrame TV');
+  config.deviceName = get('AMBIENT_DEVICE_NAME', 'Photo Frame');
   config.ambientBase = get('AMBIENT_API_BASE', 'https://photosambient.googleapis.com/v1');
-  config.tokenFile = resolve(projectRoot, get('TOKEN_FILE', 'server/.tokens.json'));
+  config.store = get('STORE', 'file') === 'firestore' ? 'firestore' : 'file';
+  config.dataDir = resolve(projectRoot, get('DATA_DIR', 'server/.data'));
+  config.firestoreProject = get('FIRESTORE_PROJECT');
+  config.encryptionKey = get('TOKEN_ENCRYPTION_KEY');
+  config.allowedOrigins = get('ALLOWED_ORIGINS', DEFAULT_ORIGINS)
+    .split(',')
+    .map((origin) => origin.trim().replace(/\/$/, ''))
+    .filter(Boolean);
   return config;
 }
 

@@ -1,5 +1,5 @@
 import { Album, MediaItem } from '../types';
-import { IS_STATIC_HOSTING } from './ambient';
+import { HAS_HELPER, HELPER_URL } from './ambient';
 
 const ALLOWED_HOSTS = ['photos.app.goo.gl', 'photos.google.com', 'goo.gl'];
 
@@ -91,12 +91,12 @@ export const RELAY_FAILED_MESSAGE =
 async function loadAlbumHtml(target: URL): Promise<string> {
   const encoded = encodeURIComponent(target.toString());
 
-  // 1. Our own server: the dev server or the home helper fetches Google
+  // 1. Our own helper (home, dev server, or Cloud Run) fetches Google
   //    directly. Validated, because a static host may answer this path with
-  //    the SPA shell. Skipped on GitHub Pages, where no server exists.
-  if (!IS_STATIC_HOSTING) {
+  //    the SPA shell.
+  if (HAS_HELPER) {
     try {
-      const res = await fetch(`/api/fetch-shared-album?url=${encoded}`);
+      const res = await fetch(`${HELPER_URL}/api/fetch-shared-album?url=${encoded}`);
       if (res.ok) {
         const html = await res.text();
         if (looksLikeAlbumHtml(html)) return html;

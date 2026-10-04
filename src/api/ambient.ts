@@ -22,20 +22,23 @@ export interface AmbientStatus {
   deviceName: string;
 }
 
-/**
- * A static host (GitHub Pages) has no helper, and must never get one: the
- * helper has no login, so a public instance would show the owner's photos to
- * anyone holding the URL. Google Photos is therefore self-host only.
- */
 export const IS_STATIC_HOSTING = import.meta.env.VITE_STATIC_HOSTING === 'true';
+
+/**
+ * Where the photo helper lives. Empty means the same origin (the home
+ * helper, or the dev server's proxy). The GitHub Pages build points this at
+ * the Cloud Run helper.
+ */
+export const HELPER_URL = (import.meta.env.VITE_HELPER_URL ?? '').replace(/\/$/, '');
+
+/** A static build with no helper configured has nothing to talk to. */
+export const HAS_HELPER = !IS_STATIC_HOSTING || HELPER_URL !== '';
 
 export const REPO_URL = import.meta.env.VITE_REPO_URL || '';
 
 export const OFFLINE_STATUS: AmbientStatus = {
   phase: 'offline',
-  message: IS_STATIC_HOSTING
-    ? 'This public site cannot reach your Google Photos. That needs LuminaFrame running on a computer in your home, which keeps your photos private to your own network.'
-    : 'The LuminaFrame helper is not running. Start it with "npm start" (or "npm run helper" during development) to use your own Google Photos.',
+  message: 'The photo service is unavailable right now.',
   userCode: null,
   verificationUrl: null,
   settingsUri: null,
@@ -43,11 +46,50 @@ export const OFFLINE_STATUS: AmbientStatus = {
   itemCount: 0,
   lastRefreshedAt: null,
   requestsToday: 0,
-  deviceName: 'LuminaFrame TV',
+  deviceName: 'Photo Frame',
 };
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, init);
+const SESSION_KEY = 'luminaframe_session';
+const SESSION_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+
+function base64Url(bytes: Uint8Array): string {
+  let binary = '';
+  bytes.forEach((b) => {
+    binary += String.fromCharCode(b);
+  });
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+let memorySession: string | null = null;
+
+/**
+ * This screen's private pairing secret: 32 random bytes, made here and kept
+ * in localStorage. The helper keys each TV's Google connection to it, so one
+ * TV can never see another's photos.
+ */
+export function getFrameSession(): string {
+  try {
+    const stored = localStorage.getItem(SESSION_KEY);
+    if (stored && SESSION_PATTERN.test(stored)) return stored;
+  } catch {
+    // Storage unavailable: fall back to a secret for this page load only.
+  }
+  if (memorySession) return memorySession;
+
+  const secret = base64Url(crypto.getRandomValues(new Uint8Array(32)));
+  try {
+    localStorage.setItem(SESSION_KEY, secret);
+  } catch {
+    memorySession = secret;
+  }
+  return secret;
+}
+
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const res = await fetch(`${HELPER_URL}${path}`, {
+    ...init,
+    headers: { ...(init.headers ?? {}), 'X-Frame-Session': getFrameSession() },
+  });
   if (!res.ok) {
     let detail = res.statusText;
     try {
@@ -61,14 +103,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 /**
- * The helper is optional: without it the app still runs demo albums and
- * shared links, so a connection failure is a state, not an exception.
+ * The helper is optional: without it the app still runs the demo and shared
+ * links, so a connection failure is a state, not an exception.
  */
 export async function fetchAmbientStatus(): Promise<AmbientStatus> {
-  // No helper can exist on a static host; skip the request rather than
-  // polling a path that will always 404.
-  if (IS_STATIC_HOSTING) return OFFLINE_STATUS;
-
+  if (!HAS_HELPER) return OFFLINE_STATUS;
   try {
     return await request<AmbientStatus>('/api/ambient/status');
   } catch {
