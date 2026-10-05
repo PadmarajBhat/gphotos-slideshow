@@ -19,6 +19,16 @@
   }
 }
 
+@layer utilities {
+  /* The page itself never scrolls (the slideshow must not), so a screen that
+     needs to scroll does it inside a box exactly the viewport's height.
+     dvh tracks a phone's collapsing address bar; vh is the fallback. */
+  .h-viewport {
+    height: 100vh;
+    height: 100dvh;
+  }
+}
+
 /* TV Remote Focus Ring - 10ft UI accessibility.
    :focus (not just :focus-visible) because D-pad focus moved programmatically
    does not always qualify as "visible" focus in TV browsers. */

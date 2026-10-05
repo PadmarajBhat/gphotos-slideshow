@@ -85,4 +85,22 @@ describe('HomeScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
     expect(onDismissNotice).toHaveBeenCalled();
   });
+
+  // Regression: with Continue above both columns, three albums pushed the QR
+  // below the bottom of a TV screen, where it could not be scanned.
+  it('keeps Continue in the demo’s column, so the QR keeps its full height', () => {
+    renderHome({ recent: recentAlbums });
+    const column = screen.getByRole('button', { name: /Try the demo/ }).parentElement!;
+    expect(column).toContainElement(screen.getByRole('region', { name: 'Continue' }));
+    expect(column).not.toContainElement(screen.getByTestId('right-panel'));
+  });
+
+  // Regression: the page is locked so the slideshow can't scroll, and this
+  // box grew with its content instead, so phones could not scroll at all.
+  it('scrolls inside a box the height of the screen', () => {
+    const { container } = renderHome({ recent: recentAlbums });
+    const box = container.firstElementChild!;
+    expect(box).toHaveClass('h-viewport', 'overflow-y-auto');
+    expect(box).not.toHaveClass('min-h-screen');
+  });
 });

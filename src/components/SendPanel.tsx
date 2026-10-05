@@ -14,7 +14,7 @@ const RENEW_BEFORE_MS = 2 * 60 * 1000;
 const RETRY_MS = 15000;
 
 const tile =
-  'h-full min-h-[260px] rounded-3xl bg-slate-900 border border-slate-800 flex flex-col items-center justify-center gap-4 p-6 text-center';
+  'h-full min-h-[260px] tv:min-h-0 rounded-3xl bg-slate-900 border border-slate-800 flex flex-col items-center justify-center gap-4 p-6 text-center';
 
 /**
  * Right-hand side of the home screen: a QR the phone scans to send a shared
@@ -107,12 +107,23 @@ export const SendPanel: React.FC<SendPanelProps> = ({ onAlbumLink }) => {
   const url = sendPageUrl(code.code);
   return (
     <div className={tile} aria-label="Send an album from your phone">
-      {/* Also a link: on a phone, tapping opens the send page directly. */}
-      <a href={url} target="_blank" rel="noreferrer" data-nav aria-label="Open the send page" className="rounded-xl tv-focus-target">
-        <QrCode value={url} size={200} label="Scan to send an album" />
-      </a>
-      <p className="text-lg lg:text-xl font-bold text-white">Scan to send an album</p>
-      <p className="text-2xl font-black tracking-[0.15em] text-amber-400 font-mono" aria-label={`Code ${code.code}`}>
+      {/* On a TV the code takes whatever height the panel has, up to 260px,
+          so it is never cut off. Also a link: on a phone, tapping opens the
+          send page directly. */}
+      <div className="w-full flex justify-center tv:flex-1 tv:min-h-0 tv:max-h-[260px]">
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          data-nav
+          aria-label="Open the send page"
+          className="block w-[200px] h-[200px] tv:w-auto tv:h-full aspect-square rounded-xl tv-focus-target"
+        >
+          <QrCode value={url} size={200} label="Scan to send an album" className="w-full h-full" />
+        </a>
+      </div>
+      <p className="shrink-0 text-lg lg:text-xl font-bold text-white">Scan to send an album</p>
+      <p className="shrink-0 text-2xl font-black tracking-[0.15em] text-amber-400 font-mono" aria-label={`Code ${code.code}`}>
         {formatCode(code.code)}
       </p>
     </div>

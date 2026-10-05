@@ -6,6 +6,12 @@ export default {
   ],
   theme: {
     extend: {
+      screens: {
+        // A screen big enough to show the whole home screen at once (TV,
+        // tablet, desktop). A TV browser can't really scroll, so there the
+        // layout must fit; smaller screens scroll instead.
+        tv: { raw: '(min-width: 768px) and (min-height: 480px)' },
+      },
       colors: {
         gpicshow: {
           ink: '#020617',

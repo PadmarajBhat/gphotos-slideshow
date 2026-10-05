@@ -46,7 +46,8 @@ export const SendToFrame: React.FC<SendToFrameProps> = ({ code }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex items-start justify-center px-5 py-10">
+    // Scrolls in its own box (the page is locked), so the keyboard can never hide the Send button for good.
+    <div className="h-viewport overflow-y-auto bg-slate-950 text-slate-100 font-sans flex items-start justify-center px-5 py-10">
       <div className="w-full max-w-md flex flex-col gap-6">
         <header className="text-center">
           <h1 className="text-3xl font-black text-white">Send an album to your TV</h1>

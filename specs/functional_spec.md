@@ -35,6 +35,7 @@ Key objectives:
    - **Continue**: the last three albums played on that screen, the most recent pre-focused so one press of OK resumes it.
    - **Try the demo** on the left; on the right a **QR code** with "Scan to send an album" and a readable one-time code.
    - Settings (gear): slide interval, transition, temperature unit, clock format, overlays, play a shared link directly, clear recently played.
+   - On a TV-sized screen (at least 768×480) the whole home screen fits without scrolling, because a TV browser can't really scroll. Continue sits above the demo in the left column, so the QR on the right keeps its full height however many albums there are; it shrinks to fit short screens (170px at 960×540, 260px at most). Smaller screens scroll inside a viewport-height box, since the page itself is locked for the slideshow.
 2. **Send an album from a phone**:
    - Scanning (or, on a phone or tablet, tapping) the QR opens `?send=<code>` on the phone.
    - The phone page explains *Share → Create link* in Google Photos, takes the pasted link and sends it.

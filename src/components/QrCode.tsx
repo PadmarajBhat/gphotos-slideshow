@@ -5,13 +5,15 @@ interface QrCodeProps {
   value: string;
   size?: number;
   label?: string;
+  /** Extra classes, e.g. to size the code from its container instead of `size`. */
+  className?: string;
 }
 
 /**
  * Renders a QR as inline SVG. A phone camera is the only practical way to get
  * a long Google settings URL onto a TV that has no keyboard.
  */
-export const QrCode: React.FC<QrCodeProps> = ({ value, size = 180, label }) => {
+export const QrCode: React.FC<QrCodeProps> = ({ value, size = 180, label, className = '' }) => {
   const path = useMemo(() => {
     // Type 0 lets the library pick the smallest version that fits.
     const qr = qrcode(0, 'M');
@@ -39,7 +41,7 @@ export const QrCode: React.FC<QrCodeProps> = ({ value, size = 180, label }) => {
       viewBox={`-1 -1 ${path.count + 2} ${path.count + 2}`}
       role="img"
       aria-label={label ?? 'QR code'}
-      className="rounded-xl bg-white p-1 shadow-lg"
+      className={`rounded-xl bg-white p-1 shadow-lg ${className}`}
       shapeRendering="crispEdges"
     >
       <rect x={-1} y={-1} width={path.count + 2} height={path.count + 2} fill="#ffffff" />

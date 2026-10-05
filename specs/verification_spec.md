@@ -26,9 +26,10 @@ Requirement IDs in the last column refer to [`requirement.md`](../requirement.md
 | AC-18 | Abuse Resistance | `app.test.mjs`, `inbox.test.mjs` + live run | Codes are single-use and expire; an address is cut off after 10 send attempts in 10 minutes, and forging `X-Forwarded-For` does not reset the count; links in transit are stored encrypted | REQ-T4, REQ-T5 |
 | AC-19 | Build & Lint Gate | CI | `npm run lint`, `npm test` and `npm run build` all pass on Node 20 and 22 | REQ-Q1 |
 | AC-20 | Every Screen Size | Manual, measured in the browser preview | Clock, details and weather never overlap and the control bar fits at 360×740, 375×812, 812×375, 768×1024 and 1920×1080 | REQ-P3, REQ-H4 |
+| AC-21 | Home Screen Always Reachable | `HomeScreen.test.tsx` + measured in the browser preview | With three albums in Continue, the QR and its code are fully on screen with no scrolling at 960×540, 1280×720, 1920×1080 and 768×1024; phones and landscape phones scroll to reach them | REQ-P3, REQ-U1, REQ-U2 |
 
 ## 2. Test Suites
-Vitest + React Testing Library, 216 tests across 27 files.
+Vitest + React Testing Library, 218 tests across 27 files.
 
 | File | Covers |
 |---|---|
