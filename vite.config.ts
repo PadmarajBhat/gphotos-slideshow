@@ -1,18 +1,19 @@
 /// <reference types="vitest" />
 import { defineConfig, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
-import { handleSharedAlbumRequest } from './server/sharedAlbumProxy.mjs';
+import { handleSharedAlbumRequest } from './server/sharedAlbum.mjs';
 
 /**
  * Dev-server route for shared albums. The same handler runs in the production
  * helper (server/index.mjs), so both fetch Google directly instead of relying
  * on a public CORS relay.
  */
-function sharedAlbumProxyPlugin(): Plugin {
+function sharedAlbumPlugin(): Plugin {
   return {
     name: 'shared-album-proxy',
     configureServer(server) {
-      server.middlewares.use('/api/fetch-shared-album', (req, res) => {
+      server.middlewares.use('/api/shared-album', (req, res, next) => {
+        if (req.method !== 'POST') return next();
         void handleSharedAlbumRequest(req, res);
       });
     },
@@ -23,7 +24,7 @@ export default defineConfig({
   // GitHub Pages serves a project site from /<repo-name>/, so the deploy
   // workflow sets VITE_BASE. Self-hosted builds (npm start) serve from root.
   base: process.env.VITE_BASE ?? '/',
-  plugins: [react(), sharedAlbumProxyPlugin()],
+  plugins: [react(), sharedAlbumPlugin()],
   test: {
     globals: true,
     environment: 'jsdom',

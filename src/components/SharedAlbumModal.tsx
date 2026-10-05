@@ -85,17 +85,10 @@ export const SharedAlbumModal: React.FC<SharedAlbumModalProps> = ({
             />
           </div>
 
-          <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl text-[11px] text-slate-400 leading-relaxed flex flex-col gap-1.5">
-            <p>
-              <strong className="text-slate-300">Two limits worth knowing.</strong> Google only
-              embeds the first few hundred photos in a shared album page, so very large albums
-              arrive partly loaded. Videos appear as still thumbnails.
-            </p>
-            <p>
-              For the complete album with playable videos, use{' '}
-              <strong className="text-amber-300">Use My Photos</strong> instead.
-            </p>
-          </div>
+          <p className="text-[11px] text-slate-500 leading-relaxed">
+            Anyone with the link can view the album. Use one made for this frame, and turn off
+            link sharing in Google Photos to stop it at any time.
+          </p>
 
           <button
             type="submit"

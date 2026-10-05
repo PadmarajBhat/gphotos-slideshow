@@ -1,6 +1,6 @@
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
-import { handleSharedAlbumRequest } from './sharedAlbumProxy.mjs';
+import { handleSharedAlbumRequest } from './sharedAlbum.mjs';
 import { isValidSessionSecret, sessionStorageId } from './crypto.mjs';
 
 const MIME = {
@@ -91,7 +91,7 @@ export function createHandler({ sessions, allowedOrigins = [], distDir, now = ()
       // Not /healthz: Cloud Run's front end reserves that path for itself.
       if (pathname === '/api/health') return sendJson(res, 200, { ok: true });
 
-      if (pathname === '/api/fetch-shared-album' && req.method === 'GET') {
+      if (pathname === '/api/shared-album' && req.method === 'POST') {
         return handleSharedAlbumRequest(req, res);
       }
 

@@ -24,7 +24,7 @@
   <a class="brand" href="./"><img src="logo-120.png" alt="" />Your Photo Frame</a>
 
   <h1>Privacy Policy</h1>
-  <p class="meta">Effective 4 October 2026</p>
+  <p class="meta">Effective 5 October 2026</p>
 
   <p>
     Your Photo Frame is an open-source app that shows your Google Photos as a slideshow on a TV,
@@ -69,6 +69,14 @@
       random identifier your screen generates, never the identifier itself.
     </li>
     <li>
+      <strong>Shared album links:</strong> if you play a Google Photos shared-album link, the link
+      is sent to the app's server, which loads that album from Google and passes it straight back
+      to your screen. Neither the link nor the album is stored on the server, and the link is sent
+      in the body of the request, so it does not appear in server logs. Anyone with a shared
+      link can view that album, so use one made for the frame; you can switch link sharing off in
+      Google Photos at any time.
+    </li>
+    <li>
       <strong>On your device</strong> (the browser's local storage): your slideshow settings, the last
       three albums played on that screen including any shared-album link you entered, and the
       screen's random identifier.
@@ -93,7 +101,6 @@
     <li><strong>Open-Meteo</strong> receives your approximate location to show the weather.</li>
     <li><strong>freeipapi.com</strong> receives your IP address to estimate that location, only if your browser cannot provide one.</li>
     <li><strong>OpenStreetMap Nominatim</strong> receives map coordinates of demo photos to show place names.</li>
-    <li><strong>api.allorigins.win</strong> receives a shared-album link you enter, only if the app's own server cannot load it.</li>
     <li><strong>GitHub Pages</strong> hosts the website.</li>
   </ul>
   <p>Turning off <em>Weather</em> or <em>Photo info</em> in Settings stops the related requests.</p>

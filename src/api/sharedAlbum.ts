@@ -3,13 +3,6 @@ import { HAS_HELPER, HELPER_URL } from './ambient';
 
 const ALLOWED_HOSTS = ['photos.app.goo.gl', 'photos.google.com', 'goo.gl'];
 
-/**
- * Public CORS relay, used only when no server of our own is reachable (the
- * GitHub Pages build). It sees the album URL and is unreliable on large
- * albums, so it is a last resort, disclosed in the README.
- */
-const CORS_GATEWAY = 'https://api.allorigins.win/raw?url=';
-
 export function assertSharedAlbumUrl(rawUrl: string): URL {
   let parsed: URL;
   try {
@@ -29,137 +22,59 @@ export function assertSharedAlbumUrl(rawUrl: string): URL {
   return parsed;
 }
 
+interface SharedAlbumResponse {
+  title: string;
+  items: MediaItem[];
+  complete: boolean;
+}
+
+export const NO_HELPER_MESSAGE = 'Shared albums need the photo service, which is unavailable right now.';
+
 /**
- * The dev proxy only exists while Vite is running. On a static host the same
- * path hits the SPA fallback and returns index.html with HTTP 200, so a
- * non-empty body is not proof that the fetch worked - the body has to actually
- * look like a Google Photos page.
+ * Asks the photo helper (home, dev server or Cloud Run) to load the whole
+ * album from Google, photos and videos included. The link travels in the
+ * request body so it never lands in server request logs, and no third-party
+ * relay ever sees it.
  */
-export function looksLikeAlbumHtml(html: string): boolean {
-  if (!html || html.length < 512) return false;
-  if (html.includes('<div id="root"></div>')) return false;
-  return /lh3\.googleusercontent\.com/.test(html) || /photos\.google\.com/.test(html);
-}
-
-export function extractAlbumTitle(html: string): string {
-  const titleMatch =
-    html.match(/<meta\s+property="og:title"\s+content="([^"]+)"/i) ||
-    html.match(/<title>([^<]+)<\/title>/i);
-  const rawTitle = titleMatch ? titleMatch[1] : 'Shared Google Photos Album';
-  const cleaned = rawTitle
-    .replace(/ - Google Photos$/i, '')
-    // Google appends " · Sep 5, 2022 – Oct 3, 2026 📸" to album titles; the
-    // range is noise on a caption, and is repeated on every photo.
-    .replace(/\s*[·•]\s*[A-Z][a-z]{2,8}\.?\s+\d{1,2},?\s+\d{4}.*$/u, '')
-    .trim();
-  return cleaned || 'Shared Google Photos Album';
-}
-
-export function extractPhotoBases(html: string): string[] {
-  const uniqueBases = new Set<string>();
-
-  const matches = html.match(/https:\/\/lh3\.googleusercontent\.com\/pw\/[a-zA-Z0-9_\-=]+/g) || [];
-  for (const url of matches) {
-    const cleanBase = url.split('=')[0];
-    if (cleanBase.length > 50) {
-      uniqueBases.add(cleanBase);
-    }
-  }
-
-  // Fallback to general lh3 matching if no pw/ items
-  if (uniqueBases.size === 0) {
-    const genericMatches = html.match(/https:\/\/lh3\.googleusercontent\.com\/[a-zA-Z0-9_\-=]+/g) || [];
-    for (const url of genericMatches) {
-      const cleanBase = url.split('=')[0];
-      if (cleanBase.length > 60) {
-        uniqueBases.add(cleanBase);
-      }
-    }
-  }
-
-  return Array.from(uniqueBases);
-}
-
-/** Free relays can hang far longer than anyone will watch a spinner. */
-const RELAY_TIMEOUT_MS = 25000;
-
-export const RELAY_FAILED_MESSAGE =
-  "This public site couldn't load that album. It has to read albums through a free public relay, " +
-  'which often times out on large albums and is blocked on many workplace networks. ' +
-  'Shared links work reliably in the home version of GPicShow, which fetches albums directly from Google.';
-
-async function loadAlbumHtml(target: URL): Promise<string> {
-  const encoded = encodeURIComponent(target.toString());
-
-  // 1. Our own helper (home, dev server, or Cloud Run) fetches Google
-  //    directly. Validated, because a static host may answer this path with
-  //    the SPA shell.
-  if (HAS_HELPER) {
-    try {
-      const res = await fetch(`${HELPER_URL}/api/fetch-shared-album?url=${encoded}`);
-      if (res.ok) {
-        const html = await res.text();
-        if (looksLikeAlbumHtml(html)) return html;
-      }
-    } catch {
-      // No server reachable - fall through to the public relay.
-    }
-  }
-
-  // 2. Public relay: the only option for a purely static deployment.
-  let res: Response;
-  try {
-    res = await fetch(`${CORS_GATEWAY}${encoded}`, {
-      signal: AbortSignal.timeout(RELAY_TIMEOUT_MS),
-    });
-  } catch {
-    throw new Error(RELAY_FAILED_MESSAGE);
-  }
-  if (!res.ok) {
-    throw new Error(RELAY_FAILED_MESSAGE);
-  }
-
-  const html = await res.text();
-  if (!looksLikeAlbumHtml(html)) {
-    throw new Error('Could not read that shared album page. Make sure the link is set to "Anyone with the link".');
-  }
-  return html;
-}
-
 export async function fetchSharedAlbum(sharedUrl: string): Promise<{
   album: Album;
   items: MediaItem[];
+  complete: boolean;
 }> {
   const target = assertSharedAlbumUrl(sharedUrl);
-  const html = await loadAlbumHtml(target);
+  if (!HAS_HELPER) throw new Error(NO_HELPER_MESSAGE);
 
-  const albumTitle = extractAlbumTitle(html);
-  const bases = extractPhotoBases(html);
-
-  if (bases.length === 0) {
-    throw new Error('No photos were found in this shared album. Make sure it contains photos and the link is public.');
+  let res: Response;
+  try {
+    res = await fetch(`${HELPER_URL}/api/shared-album`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: target.toString() }),
+    });
+  } catch {
+    throw new Error(NO_HELPER_MESSAGE);
   }
 
+  let data: Partial<SharedAlbumResponse> & { error?: string };
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error('Could not read the album. Try again in a moment.');
+  }
+  if (!res.ok) throw new Error(data.error ?? 'Could not load that shared album.');
+
+  const items = Array.isArray(data.items) ? data.items : [];
+  if (items.length === 0) throw new Error('This shared album has no photos or videos to show.');
+
+  const firstPhoto = items.find((item) => !item.videoUrl) ?? items[0];
   const album: Album = {
-    id: `shared-${Date.now()}`,
-    title: albumTitle,
-    coverPhotoBaseUrl: `${bases[0]}=w800-h800-c`,
-    mediaItemsCount: bases.length.toString(),
+    id: `shared-${target.pathname}`,
+    title: data.title || 'Shared Google Photos Album',
+    // Swap the display size suffix for a square thumbnail.
+    coverPhotoBaseUrl: firstPhoto.baseUrl.replace(/=[^/=]*$/, '=w800-h800-c'),
+    mediaItemsCount: String(items.length),
     isDemo: false,
   };
 
-  const items: MediaItem[] = bases.map((base, idx) => ({
-    id: `shared-item-${idx}`,
-    baseUrl: `${base}=w2560-h1440`,
-    mimeType: 'image/jpeg',
-    filename: `photo_${idx + 1}.jpg`,
-    mediaMetadata: {
-      creationTime: '',
-      width: '1920',
-      height: '1080',
-    },
-    description: `${albumTitle} - Photo ${idx + 1}`,
-  }));
-
-  return { album, items };
+  return { album, items, complete: data.complete !== false };
 }
