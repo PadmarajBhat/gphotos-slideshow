@@ -12,6 +12,13 @@ const METADATA = 'http://metadata.google.internal/computeMetadata/v1';
 /** Firestore documents cap at 1 MiB; keep media chunks well under it. */
 const MEDIA_CHUNK_CHARS = 700_000;
 
+/**
+ * Every write pushes this expiry forward; a Firestore TTL policy on
+ * `expireAt` deletes records for screens unused this long. That is the
+ * retention period the privacy policy promises.
+ */
+export const RETENTION_DAYS = 90;
+
 export function createFirestoreStore({ projectId, fetchImpl = fetch, tokenProvider } = {}) {
   let cachedToken = null;
   let cachedProject = projectId ?? null;
@@ -57,8 +64,12 @@ export function createFirestoreStore({ projectId, fetchImpl = fetch, tokenProvid
   }
 
   async function write(collection, id, value) {
+    const expireAt = new Date(Date.now() + RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
     await call('PATCH', await docUrl(collection, id), {
-      fields: { data: { stringValue: JSON.stringify(value) } },
+      fields: {
+        data: { stringValue: JSON.stringify(value) },
+        expireAt: { timestampValue: expireAt },
+      },
     });
   }
 

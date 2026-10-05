@@ -160,6 +160,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             onPlay={onPlayGoogle}
           />
         </section>
+
+        {/* Google's OAuth verification requires the homepage to link these. */}
+        <footer className="flex justify-center gap-4 text-xs text-slate-500 -mt-4">
+          <a href={`${import.meta.env.BASE_URL}privacy.html`} className="hover:text-slate-300">
+            Privacy
+          </a>
+          <span aria-hidden="true">·</span>
+          <a href={`${import.meta.env.BASE_URL}terms.html`} className="hover:text-slate-300">
+            Terms
+          </a>
+        </footer>
       </div>
     </div>
   );

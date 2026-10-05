@@ -60,6 +60,17 @@ describe('Firestore store (Cloud Run)', () => {
     expect(await store.getSession('abc')).toEqual({ phase: 'pairing' });
   });
 
+  it('stamps every record with an expiry so abandoned screens are deleted', async () => {
+    const { store, fetchImpl } = fakeFirestore();
+    const before = Date.now();
+    await store.putSession('abc', { phase: 'ready' });
+
+    const expireAt = Date.parse(JSON.parse(fetchImpl.mock.calls[0][1].body).fields.expireAt.timestampValue);
+    const days = (expireAt - before) / (24 * 60 * 60 * 1000);
+    expect(days).toBeGreaterThan(89.9);
+    expect(days).toBeLessThan(90.1);
+  });
+
   it('treats a missing document as no session', async () => {
     const { store } = fakeFirestore();
     expect(await store.getSession('missing')).toBeNull();

@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy · Your Photo Frame</title>
+  <link rel="icon" type="image/svg+xml" href="logo.svg" />
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; background: #020617; color: #cbd5e1; font: 16px/1.7 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    main { max-width: 760px; margin: 0 auto; padding: 48px 24px 72px; }
+    h1 { color: #fff; font-size: 2rem; margin: 0 0 4px; }
+    h2 { color: #fff; font-size: 1.2rem; margin: 2.2em 0 0.4em; }
+    a { color: #fbbf24; }
+    .meta { color: #64748b; font-size: 0.9rem; margin-bottom: 2em; }
+    .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; text-decoration: none; color: #fff; font-weight: 700; }
+    .brand img { width: 40px; height: 40px; }
+    li { margin: 0.3em 0; }
+    code { color: #e2e8f0; }
+  </style>
+</head>
+<body>
+<main>
+  <a class="brand" href="./"><img src="logo-120.png" alt="" />Your Photo Frame</a>
+
+  <h1>Privacy Policy</h1>
+  <p class="meta">Effective 4 October 2026</p>
+
+  <p>
+    Your Photo Frame is an open-source app that shows your Google Photos as a slideshow on a TV,
+    tablet or phone. It is developed by Padmaraj Bhat. This policy explains what data the app
+    uses, why, where it is kept, and how to remove it. The source code is public at
+    <a href="https://github.com/PadmarajBhat/gphotos-slideshow">github.com/PadmarajBhat/gphotos-slideshow</a>,
+    so every statement here can be checked against it.
+  </p>
+
+  <h2>Google user data the app accesses</h2>
+  <p>
+    When you connect a screen, you sign in with Google on your phone and approve access using the
+    Google Photos Ambient API. The app requests the <code>photosambient.mediaitems</code> scope and
+    Google's basic <code>profile</code> scope. It then receives only the photos and videos in the
+    albums <strong>you choose for that screen</strong> in the Google Photos app. For each item it
+    receives a temporary link to the file, whether it is a photo or a video, its creation time, and
+    its width and height.
+  </p>
+  <p>
+    The app does not access your other photos or albums, and it does not read your email, contacts
+    or other Google services. It does not store or use your profile information.
+  </p>
+
+  <h2>How the app uses that data</h2>
+  <p>
+    Solely to show your chosen photos and videos on the screen you connected. The data is not used
+    for advertising, profiling or analytics, is not used to train any model, and is not sold.
+  </p>
+
+  <h2>Where data is stored</h2>
+  <ul>
+    <li>
+      <strong>Your photos and videos are never stored by the app.</strong> They stream directly from
+      Google's servers to your screen.
+    </li>
+    <li>
+      <strong>On Google Cloud</strong> (Firestore, in the <code>us-central1</code> region), for each
+      connected screen: your Google sign-in tokens, encrypted with AES-256-GCM using a key held in
+      Google Secret Manager; the screen's Google Photos device identifier and pairing state; and a
+      cached list of your chosen items' links and details, refreshed about every 50 minutes because
+      Google's links expire after about an hour. Each record is filed under a one-way hash of a
+      random identifier your screen generates, never the identifier itself.
+    </li>
+    <li>
+      <strong>On your device</strong> (the browser's local storage): your slideshow settings, the last
+      three albums played on that screen including any shared-album link you entered, and the
+      screen's random identifier.
+    </li>
+  </ul>
+
+  <h2>How long data is kept, and how to delete it</h2>
+  <ul>
+    <li><strong>Disconnect:</strong> choose <em>Settings → Disconnect Google Photos</em>. The app revokes its Google access and deletes that screen's stored record and cached list immediately.</li>
+    <li><strong>Revoke from Google:</strong> at any time, at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>. The app loses access straight away, and its stored tokens are discarded the next time the screen checks in.</li>
+    <li><strong>Automatic deletion:</strong> records for a screen that has not been used for 90 days are deleted automatically.</li>
+    <li><strong>On your device:</strong> clear the browser's site data, or use <em>Settings → Clear recently played</em>.</li>
+  </ul>
+
+  <h2>Sharing</h2>
+  <p>
+    The app does not sell, rent or share Google user data. Google Cloud stores the data described
+    above on the app's behalf. To provide other features, the app also contacts these services,
+    none of which receive data from your Google account:
+  </p>
+  <ul>
+    <li><strong>Open-Meteo</strong> receives your approximate location to show the weather.</li>
+    <li><strong>freeipapi.com</strong> receives your IP address to estimate that location, only if your browser cannot provide one.</li>
+    <li><strong>OpenStreetMap Nominatim</strong> receives map coordinates of demo photos to show place names.</li>
+    <li><strong>api.allorigins.win</strong> receives a shared-album link you enter, only if the app's own server cannot load it.</li>
+    <li><strong>GitHub Pages</strong> hosts the website.</li>
+  </ul>
+  <p>Turning off <em>Weather</em> or <em>Photo info</em> in Settings stops the related requests.</p>
+
+  <h2>Limited Use</h2>
+  <p>
+    Your Photo Frame's use and transfer to any other app of information received from Google APIs
+    will adhere to the
+    <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>,
+    including the Limited Use requirements.
+  </p>
+
+  <h2>Security</h2>
+  <p>
+    All connections use HTTPS. Stored sign-in tokens are encrypted, the encryption key is kept in
+    Google Secret Manager, and the app's server runs under a dedicated account that can only reach
+    its own database and keys.
+  </p>
+
+  <h2>Children</h2>
+  <p>The app is not directed to children under 13 and does not knowingly collect their data.</p>
+
+  <h2>Changes</h2>
+  <p>Any changes to this policy will be posted on this page with a new effective date.</p>
+
+  <h2>Contact</h2>
+  <p>Questions or deletion requests: <a href="mailto:padmarajbhat@gmail.com">padmarajbhat@gmail.com</a>.</p>
+</main>
+</body>
+</html>
