@@ -20,6 +20,8 @@ function sharedAlbumPlugin(): Plugin {
   };
 }
 
+const helper = { target: `http://localhost:${process.env.HELPER_PORT ?? 4000}`, changeOrigin: false };
+
 export default defineConfig({
   // GitHub Pages serves a project site from /<repo-name>/, so the deploy
   // workflow sets VITE_BASE. Self-hosted builds (npm start) serve from root.
@@ -33,13 +35,12 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true,
+    // Routes that keep state (the phone-to-TV inbox, Google pairing) live in
+    // the helper, a separate local process (npm run helper).
     proxy: {
-      // The Ambient helper holds the Google client secret, which a browser
-      // cannot. It runs as a separate local process (npm run helper).
-      '/api/ambient': {
-        target: `http://localhost:${process.env.HELPER_PORT ?? 4000}`,
-        changeOrigin: false,
-      },
+      '/api/send': helper, // also /api/send-code
+      '/api/inbox': helper,
+      '/api/ambient': helper,
     },
   },
 });

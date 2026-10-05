@@ -20,6 +20,40 @@ const MIME = {
 /** Pairing codes are requested from Google; cap how fast one address can ask. */
 const CONNECT_LIMIT = 10;
 const CONNECT_WINDOW_MS = 10 * 60 * 1000;
+/** Each send attempt is a guess at a TV's code, so it gets the same cap. */
+const SEND_LIMIT = 10;
+
+/**
+ * The caller's address, for rate limiting. Behind Cloud Run the socket is the
+ * front end, which appends the real address to X-Forwarded-For; everything
+ * before that entry came from the caller and can be forged. Without a proxy
+ * the header is ignored entirely.
+ */
+export function clientIp(req, trustProxy) {
+  if (trustProxy) {
+    const hops = String(req.headers['x-forwarded-for'] ?? '').split(',').map((h) => h.trim()).filter(Boolean);
+    if (hops.length > 0) return hops[hops.length - 1];
+  }
+  return req.socket?.remoteAddress ?? 'unknown';
+}
+
+function readJsonBody(req, limit = 16 * 1024) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', (chunk) => {
+      body += chunk;
+      if (body.length > limit) reject(new Error('Request body too large'));
+    });
+    req.on('end', () => {
+      try {
+        resolve(body ? JSON.parse(body) : {});
+      } catch {
+        reject(new Error('Request body is not valid JSON'));
+      }
+    });
+    req.on('error', reject);
+  });
+}
 
 function sendJson(res, status, payload) {
   const body = JSON.stringify(payload);
@@ -31,16 +65,19 @@ function sendJson(res, status, payload) {
   res.end(body);
 }
 
-export function createHandler({ sessions, allowedOrigins = [], distDir, now = () => Date.now() }) {
-  const connectAttempts = new Map();
-
-  function rateLimited(ip) {
-    const cutoff = now() - CONNECT_WINDOW_MS;
-    const recent = (connectAttempts.get(ip) ?? []).filter((t) => t > cutoff);
-    recent.push(now());
-    connectAttempts.set(ip, recent);
-    return recent.length > CONNECT_LIMIT;
+export function createHandler({ sessions, inbox, allowedOrigins = [], distDir, trustProxy = false, now = () => Date.now() }) {
+  function limiter(limit) {
+    const attempts = new Map();
+    return (ip) => {
+      const cutoff = now() - CONNECT_WINDOW_MS;
+      const recent = (attempts.get(ip) ?? []).filter((t) => t > cutoff);
+      recent.push(now());
+      attempts.set(ip, recent);
+      return recent.length > limit;
+    };
   }
+  const rateLimited = limiter(CONNECT_LIMIT);
+  const sendLimited = limiter(SEND_LIMIT);
 
   async function serveStatic(res, pathname) {
     if (!distDir) {
@@ -95,6 +132,44 @@ export function createHandler({ sessions, allowedOrigins = [], distDir, now = ()
         return handleSharedAlbumRequest(req, res);
       }
 
+      // The phone's half of phone-to-TV: needs only the code from the QR.
+      if (pathname === '/api/send' && req.method === 'POST' && inbox) {
+        if (sendLimited(clientIp(req, trustProxy))) {
+          return sendJson(res, 429, { error: 'Too many attempts. Wait a few minutes and try again.' });
+        }
+        let body;
+        try {
+          body = await readJsonBody(req);
+        } catch (err) {
+          return sendJson(res, 400, { error: err.message });
+        }
+        try {
+          const result = await inbox.deliver(body.code, body.url);
+          if (!result.ok) {
+            return sendJson(res, 404, { error: 'This code has expired. Scan the new QR code on your TV.' });
+          }
+          return sendJson(res, 200, { ok: true });
+        } catch (err) {
+          return sendJson(res, 400, {
+            error: err instanceof Error && /allowed|https|valid|photo link/.test(err.message)
+              ? 'That is not a Google Photos shared album link.'
+              : 'Could not send that link.',
+          });
+        }
+      }
+
+      // The TV's half: a code to show, and an inbox to check.
+      if ((pathname === '/api/send-code' || pathname === '/api/inbox') && inbox) {
+        const secret = req.headers['x-frame-session'];
+        if (!isValidSessionSecret(secret)) {
+          return sendJson(res, 400, { error: 'Missing or invalid X-Frame-Session header' });
+        }
+        const id = sessionStorageId(secret);
+        if (pathname === '/api/send-code' && req.method === 'POST') return sendJson(res, 200, await inbox.issueCode(id));
+        if (pathname === '/api/inbox' && req.method === 'GET') return sendJson(res, 200, await inbox.collect(id));
+        return sendJson(res, 404, { error: `Unknown endpoint ${pathname}` });
+      }
+
       if (pathname.startsWith('/api/ambient/')) {
         const secret = req.headers['x-frame-session'];
         if (!isValidSessionSecret(secret)) {
@@ -107,8 +182,7 @@ export function createHandler({ sessions, allowedOrigins = [], distDir, now = ()
         if (route === 'GET /api/ambient/media') return sendJson(res, 200, await sessions.media(id));
         if (route === 'POST /api/ambient/disconnect') return sendJson(res, 200, await sessions.disconnect(id));
         if (route === 'POST /api/ambient/connect') {
-          const ip = String(req.headers['x-forwarded-for'] ?? req.socket?.remoteAddress ?? 'unknown').split(',')[0].trim();
-          if (rateLimited(ip)) return sendJson(res, 429, { error: 'Too many pairing attempts. Try again in a few minutes.' });
+          if (rateLimited(clientIp(req, trustProxy))) return sendJson(res, 429, { error: 'Too many pairing attempts. Try again in a few minutes.' });
           return sendJson(res, 200, await sessions.connect(id));
         }
         return sendJson(res, 404, { error: `Unknown endpoint ${pathname}` });

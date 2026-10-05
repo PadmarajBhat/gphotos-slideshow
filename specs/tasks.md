@@ -78,8 +78,18 @@ A review against [`requirement.md`](../requirement.md) found the build broken, s
   - Replace the no-op `spec_drift_check.py` with one that actually fails on drift
   - Remove dead CSS classes, the duplicate Ken Burns keyframes and the unrelated colour palette
 
+## Phase 3 — Shared albums from a phone (2026-10-05)
+
+- [x] **Task 17: Whole shared albums** *(REQ-G2, REQ-G4)* — server-side pagination through Google's album RPC; videos play in full. 687 of 687 items verified.
+- [x] **Task 18: Hosted helper** *(REQ-P3, REQ-P5)* — Cloud Run (`us-central1`), Firestore with TTL policies, Secret Manager, a least-privilege service account, per-screen secrets stored as hashes.
+- [x] **Task 19: Phone-to-TV hand-off** *(REQ-U2)* — one-time codes as a QR on the TV, a send page on the phone, encrypted links in transit, per-address rate limiting that a forged `X-Forwarded-For` cannot dodge.
+- [x] **Task 20: Every screen size** *(REQ-P3, REQ-H4)* — compact, non-overlapping overlays under 640px, a control bar that fits, the fullscreen button hidden where unsupported, and a screen wake lock.
+- [x] **Task 21: Resilience** *(REQ-U4)* — back off when media keeps failing; reload a playing shared album every 6 hours.
+- [x] **Task 22: Ambient API behind a flag** *(REQ-G1, REQ-G5)* — partner-only, so `VITE_AMBIENT_API` defaults off.
+
 ## Open items
 
-- [ ] **Confirm Google Photos API availability** *(REQ-G5)* — verify whether `photoslibrary.readonly` still grants third-party library access, or whether the Picker API is now required. This decides how much future investment Option B deserves.
+- [ ] **Google partner program** *(REQ-G1, REQ-G2)* — apply for Ambient API access; once accepted, build with `VITE_AMBIENT_API=true`.
+- [ ] **Shared-album link lifetime** *(REQ-U4)* — measure over several days whether Google's photo links from a shared album expire, and tune the 6-hour reload.
 - [ ] **On-device verification** — run the build on a Sony Bravia W95C and confirm D-pad key codes, focus rings and video codec support. jsdom cannot stand in for this.
 - [ ] **Internationalization** *(REQ-I1)* — UI strings are English-only.

@@ -25,6 +25,14 @@ export interface AmbientStatus {
 export const IS_STATIC_HOSTING = import.meta.env.VITE_STATIC_HOSTING === 'true';
 
 /**
+ * Google Photos Ambient API pairing. Google only grants that API to members of
+ * its Photos partner program (anyone else gets a 403 after approving on their
+ * phone), so it stays off until the project is accepted. The helper code for
+ * it remains in place; set VITE_AMBIENT_API=true to switch it on.
+ */
+export const AMBIENT_ENABLED = import.meta.env.VITE_AMBIENT_API === 'true';
+
+/**
  * Where the photo helper lives. Empty means the same origin (the home
  * helper, or the dev server's proxy). The GitHub Pages build points this at
  * the Cloud Run helper.

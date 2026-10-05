@@ -219,6 +219,65 @@ describe('useSlideshow Hook', () => {
     expect(result.current.currentIndex).toBe(0);
   });
 
+  describe('when everything fails to load', () => {
+    const photos: MediaItem[] = Array.from({ length: 10 }, (_, i) => ({
+      ...mockItems[0],
+      id: `photo-${i}`,
+      baseUrl: `https://example.com/p${i}.jpg`,
+    }));
+    const failCurrent = (result: { current: ReturnType<typeof useSlideshow> }) =>
+      act(() => result.current.handleMediaError());
+
+    it('slows down instead of racing through the album', () => {
+      const { result } = renderHook(() =>
+        useSlideshow({ items: photos, durationSeconds: 5, transitionEffect: 'crossfade' })
+      );
+
+      for (let i = 0; i < 4; i += 1) failCurrent(result);
+      // Three quick skips, then the fourth failure waits.
+      expect(result.current.currentIndex).toBe(3);
+      expect(result.current.isRetrying).toBe(true);
+
+      act(() => vi.advanceTimersByTime(4900));
+      expect(result.current.currentIndex).toBe(3);
+      act(() => vi.advanceTimersByTime(200));
+      expect(result.current.currentIndex).toBe(4);
+
+      // The next failure waits twice as long.
+      failCurrent(result);
+      act(() => vi.advanceTimersByTime(9900));
+      expect(result.current.currentIndex).toBe(4);
+      act(() => vi.advanceTimersByTime(200));
+      expect(result.current.currentIndex).toBe(5);
+    });
+
+    it('counts several error events from one item as one failure', () => {
+      const { result } = renderHook(() =>
+        useSlideshow({ items: photos, durationSeconds: 5, transitionEffect: 'crossfade' })
+      );
+      act(() => {
+        result.current.handleMediaError();
+        result.current.handleMediaError();
+      });
+      expect(result.current.currentIndex).toBe(1);
+    });
+
+    it('goes back to normal as soon as a photo loads', () => {
+      const { result } = renderHook(() =>
+        useSlideshow({ items: photos, durationSeconds: 5, transitionEffect: 'crossfade' })
+      );
+      for (let i = 0; i < 4; i += 1) failCurrent(result);
+      act(() => vi.advanceTimersByTime(5000));
+
+      act(() => result.current.handleMediaLoaded());
+      expect(result.current.isRetrying).toBe(false);
+
+      // A later failure is a quick skip again.
+      failCurrent(result);
+      expect(result.current.currentIndex).toBe(5);
+    });
+  });
+
   it('recovers when the album is reloaded with fewer items', () => {
     const { result, rerender } = renderHook(
       ({ items }) => useSlideshow({ items, durationSeconds: 5, transitionEffect: 'crossfade' }),

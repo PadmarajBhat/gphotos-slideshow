@@ -6,47 +6,51 @@ Requirement IDs in the last column refer to [`requirement.md`](../requirement.md
 
 | ID | Requirement | Verification Method | Pass Criteria | Req |
 |---|---|---|---|---|
-| AC-01 | Sign in with Google | `useGoogleAuth.test.ts` + manual OAuth run | Missing Client ID yields an actionable message and no Google call; a returned token authenticates | REQ-G1 |
+| AC-01 | Send an album from a phone | `inbox.test.mjs`, `app.test.mjs`, `SendPanel.test.tsx`, `SendToFrame.test.tsx`, live run against Cloud Run | The TV shows a QR with a valid code and renews it before expiry; the phone's link reaches only the TV that showed the code, once; spent, expired and non-Google submissions are refused | REQ-G1, REQ-U2 |
 | AC-02 | Instant Demo Mode | Manual | Curated album with photos and video plays with no credentials | REQ-G4 |
-| AC-03 | Album Listing | `googlePhotos.test.ts` | All pages are followed via `nextPageToken`; grid shows cover, title, count | REQ-G2 |
+| AC-03 | Whole shared album | `sharedAlbum.test.mjs` + live run | Every page is followed until the continuation token runs out; videos are recognised; a 687-item album arrives complete | REQ-G2, REQ-G4 |
 | AC-04 | Fullscreen Slideshow | `BlurredBackdrop.test.tsx` | Fills the viewport; non-fitting photos get a blurred backdrop from a downscaled copy | REQ-S4, REQ-S5 |
 | AC-05 | Configurable Duration | `useSlideshow.test.ts`, `storage.test.ts` | Slides advance on the chosen interval, and the choice survives a reload | REQ-S2, REQ-U3 |
 | AC-06 | Full Video Playback | `useSlideshow.test.ts` | Timer suspended during video; advances on `ended` | REQ-S3 |
-| AC-07 | Video Failure Recovery | `useSlideshow.test.ts` | A video that never ends is force-advanced; a media error skips forward | REQ-S3, REQ-U4 |
+| AC-07 | Media Failure Recovery | `useSlideshow.test.ts` | A video that never ends is force-advanced; up to three failures skip at once, after which retries back off from 5s to 60s; one item's repeated error events count once; a successful load resets | REQ-S3, REQ-U4 |
 | AC-08 | Random Transitions | `transitions.test.ts` | Random never returns `random`; each effect maps to its animation class | REQ-S1 |
 | AC-09 | Top-Left Ambient Clock | `dateUtils.test.ts` | Time, AM/PM, seconds, day and date in the viewer's own locale and timezone | REQ-H1 |
 | AC-10 | Bottom-Left Media Info | `MediaDetails.test.tsx` | Capture date/time, description and camera metadata; place name when coordinates exist | REQ-H2 |
 | AC-11 | Bottom-Right Weather | `weather.test.ts` | Temperature (°C/°F), condition icon, description, rain and humidity | REQ-H3 |
-| AC-12 | TV Remote Navigation | `AlbumGrid.test.tsx`, `useTvRemote.test.ts` | Arrow keys move focus between albums, Enter selects, Space pauses, Escape/Back returns | REQ-U1 |
+| AC-12 | TV Remote Navigation | `HomeScreen.test.tsx`, `useSpatialNavigation.test.ts`, `useTvRemote.test.ts` | Arrow keys move focus, Enter selects, the latest album is pre-focused, Space pauses, Escape/Back returns | REQ-U1 |
 | AC-13 | Dialog Focus Containment | `SettingsModal.test.tsx` | Focus enters the dialog, Tab cycles inside it, Escape and Back close it | REQ-U1 |
-| AC-14 | Preference Persistence | `storage.test.ts` | Preferences round-trip; a corrupt payload falls back per field without throwing | REQ-U3 |
-| AC-15 | Unattended Operation | `useGoogleAuth.test.ts` | The token is silently renewed before expiry; media URLs refresh on a 45-minute cycle | REQ-U4 |
-| AC-16 | Privacy Disclosure | Manual network audit against the README table | No media or token is persisted; every outbound host is documented and avoidable | REQ-T1, REQ-T3 |
-| AC-17 | Proxy Hardening | `sharedAlbum.test.ts` | Non-Google hosts and plain HTTP are refused before any request is made | REQ-T5 |
-| AC-18 | Shared Album Fallback | `sharedAlbum.test.ts` | An SPA shell response is rejected and the public gateway is tried instead | REQ-P5, REQ-U2 |
+| AC-14 | Preference Persistence | `storage.test.ts`, `recentAlbums.test.ts` | Preferences and the last three albums round-trip; a corrupt payload falls back without throwing | REQ-U3 |
+| AC-15 | Unattended Operation | `useSharedAlbumRefresh.test.ts`, `useWakeLock.test.ts` | A playing shared album reloads every 6 hours and keeps its list if a reload fails; the screen stays awake and the lock is retaken when the tab returns | REQ-U4, REQ-P3 |
+| AC-16 | Privacy Disclosure | Manual network audit against the README table | No media is persisted; every outbound host is documented | REQ-T1, REQ-T3 |
+| AC-17 | Fetch Hardening | `sharedAlbum.test.mjs`, `sharedAlbum.test.ts` | Non-Google hosts and plain HTTP are refused before any request; every redirect hop is re-validated | REQ-T5 |
+| AC-18 | Abuse Resistance | `app.test.mjs`, `inbox.test.mjs` + live run | Codes are single-use and expire; an address is cut off after 10 send attempts in 10 minutes, and forging `X-Forwarded-For` does not reset the count; links in transit are stored encrypted | REQ-T4, REQ-T5 |
 | AC-19 | Build & Lint Gate | CI | `npm run lint`, `npm test` and `npm run build` all pass on Node 20 and 22 | REQ-Q1 |
+| AC-20 | Every Screen Size | Manual, measured in the browser preview | Clock, details and weather never overlap and the control bar fits at 360×740, 375×812, 812×375, 768×1024 and 1920×1080 | REQ-P3, REQ-H4 |
 
 ## 2. Test Suites
-Vitest + React Testing Library, 105 tests across 14 files:
+Vitest + React Testing Library, 216 tests across 27 files.
 
 | File | Covers |
 |---|---|
-| `useSlideshow.test.ts` | Timer, video completion, media-error recovery, watchdog, item-count changes |
-| `useGoogleAuth.test.ts` | Missing/invalid Client ID, token flow, silent renewal, sign-out, persistence |
-| `useTvRemote.test.ts` | Every key mapping, text-input guard, enable/disable, listener cleanup |
-| `googlePhotos.test.ts` | Album and media pagination, URL mapping, 401/403 error messages |
-| `sharedAlbum.test.ts` | Host allowlist, HTML validation, title/photo extraction, gateway fallback |
-| `AlbumGrid.test.tsx` | D-pad navigation, initial focus, edge behaviour, dialog focus safety |
+| `useSlideshow.test.ts` | Timer, video completion, media-error recovery and back-off, watchdog, item-count changes |
+| `useSharedAlbumRefresh.test.ts` | Periodic reload of a playing shared album, failure tolerance, cleanup |
+| `useWakeLock.test.ts` | Acquire, release, re-acquire on visibility, unsupported browsers |
+| `SendPanel.test.tsx` | QR and code, inbox polling, code renewal, unavailable helper |
+| `SendToFrame.test.tsx` | Link validation, send, confirmation, expired-code message |
+| `HomeScreen.test.tsx` | Layout, Continue row, initial focus, right-hand panel slot |
+| `useSpatialNavigation.test.ts`, `useTvRemote.test.ts` | D-pad focus movement and every key mapping |
 | `SettingsModal.test.tsx` | Save, cancel-discards, reopen state, focus trap, Escape/Back |
-| `storage.test.ts` | Preference round-trip and per-field sanitisation |
-| `mediaUrls.test.ts` | Backdrop downscaling for Google and query-sized URLs, video detection |
-| `transitions.test.ts` | Random selection and class mapping |
-| `weather.test.ts` | Open-Meteo WMO code mapping |
-| `dateUtils.test.ts` | Locale-independent date and clock formatting |
-| `MediaDetails.test.tsx` | Metadata rendering and fallbacks |
-| `BlurredBackdrop.test.tsx` | Downscaled source, video handling, vignette |
+| `sharedAlbum.test.ts` | Client-side link validation and the helper request |
+| `storage.test.ts`, `recentAlbums.test.ts` | Preference and recent-album persistence and sanitisation |
+| `mediaUrls.test.ts`, `BlurredBackdrop.test.tsx` | Backdrop downscaling, video detection |
+| `transitions.test.ts`, `weather.test.ts`, `dateUtils.test.ts`, `MediaDetails.test.tsx` | Effects, weather codes, clock formatting, metadata rendering |
+| `ambient.test.ts`, `ambientMapping.test.ts`, `PhotosPanel.test.tsx` | The Ambient integration kept for partner approval |
+| `server/test/inbox.test.mjs` | Codes, delivery, one-time collection, expiry, encryption, isolation between TVs |
+| `server/test/sharedAlbum.test.mjs` | Album parsing, pagination, videos, host allowlist, redirects |
+| `server/test/app.test.mjs` | Routes, CORS, sessions, rate limits, forged headers, error hiding |
+| `server/test/stores.test.mjs`, `crypto.test.mjs`, `sessions.test.mjs` | Firestore mapping and expiries, encryption, Ambient pairing |
 
 ## 3. Known Gaps
-- **AC-01 end-to-end** cannot be automated here: it needs a real Google account and Client ID. The hook is unit-tested against a stubbed GIS client; the live flow is manual.
+- **Shared-album link lifetime** is undocumented by Google and has not been measured over several days. AC-15's 6-hour reload is the mitigation.
 - **AC-16** requires a manual browser network-panel audit; there is no automated assertion that the set of outbound hosts matches the README.
 - **On-device verification** on a Sony Bravia W95C has not been performed. D-pad handling is covered by jsdom tests, which cannot model a real TV browser's key codes or focus quirks.

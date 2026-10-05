@@ -10,6 +10,8 @@ interface ImportMetaEnv {
    * Cloud Run service behind the GitHub Pages site.
    */
   readonly VITE_HELPER_URL?: string;
+  /** "true" once accepted into Google's Photos partner program. */
+  readonly VITE_AMBIENT_API?: string;
 }
 
 interface ImportMeta {

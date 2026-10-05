@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MediaItem, SlideshowConfig } from '../types';
 import { useSlideshow } from '../hooks/useSlideshow';
 import { useTvRemote } from '../hooks/useTvRemote';
+import { useWakeLock } from '../hooks/useWakeLock';
 import { BlurredBackdrop } from './BlurredBackdrop';
 import { AmbientClock } from './AmbientClock';
 import { MediaDetails } from './MediaDetails';
@@ -39,6 +40,8 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({ items, config, onE
     togglePlay,
     handleVideoEnded,
     handleMediaError,
+    handleMediaLoaded,
+    isRetrying,
   } = useSlideshow({
     items,
     durationSeconds: config.durationSeconds,
@@ -60,6 +63,8 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({ items, config, onE
     document.addEventListener('fullscreenchange', syncFullScreen);
     return () => document.removeEventListener('fullscreenchange', syncFullScreen);
   }, []);
+
+  useWakeLock();
 
   // TV Remote & keyboard bindings
   useTvRemote({
@@ -159,6 +164,7 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({ items, config, onE
             onEnded={handleVideoEnded}
             onPlaying={() => {
               videoStartedRef.current = true;
+              handleMediaLoaded();
             }}
             onError={handleMediaError}
             onStalled={handleMediaError}
@@ -169,36 +175,50 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({ items, config, onE
             key={currentItem.id}
             src={currentItem.baseUrl}
             alt={currentItem.description || currentItem.filename}
+            onLoad={handleMediaLoaded}
             onError={handleMediaError}
             className={`max-w-full max-h-full object-contain rounded-lg drop-shadow-2xl ${transitionClass}`}
           />
         )}
       </div>
 
+      {isRetrying && (
+        <div role="status" className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none px-6">
+          <p className="ambient-glass rounded-2xl px-5 py-3 text-sm sm:text-base text-slate-200 text-center">
+            Photos aren’t loading right now. Trying again shortly…
+          </p>
+        </div>
+      )}
+
       {/* 3. Top-Left: Regional Date & Time */}
       {showHud && config.showClock && (
-        <div className="absolute top-6 left-6 lg:top-8 lg:left-8 z-20 transition-opacity duration-300">
+        <div className="absolute top-4 left-4 sm:top-6 sm:left-6 lg:top-8 lg:left-8 z-20 transition-opacity duration-300">
           <AmbientClock format12h={config.clockFormat === '12h'} />
         </div>
       )}
 
-      {/* 4. Bottom-Left: Image Details (Where, When, Camera) */}
-      {showHud && config.showDetails && (
-        <div className="absolute bottom-6 left-6 lg:bottom-8 lg:left-8 z-20 transition-opacity duration-300">
-          <MediaDetails item={currentItem} />
-        </div>
-      )}
-
-      {/* 5. Bottom-Right: Local Weather Details */}
-      {showHud && config.showWeather && (
-        <div className="absolute bottom-6 right-6 lg:bottom-8 lg:right-8 z-20 transition-opacity duration-300">
-          <WeatherWidget tempUnit={config.tempUnit} />
+      {/* 4 & 5. Bottom-Left: Image Details, Bottom-Right: Local Weather.
+          One flex row so they can never overlap; the details give way first.
+          A phone is too narrow for both side by side, so there the weather
+          sits on top of the details instead. */}
+      {showHud && (config.showDetails || config.showWeather) && (
+        <div className="absolute inset-x-4 bottom-4 sm:inset-x-6 sm:bottom-6 lg:inset-x-8 lg:bottom-8 z-20 flex flex-col-reverse gap-2 sm:flex-row sm:items-end sm:gap-4 pointer-events-none transition-opacity duration-300">
+          {config.showDetails && (
+            <div className="self-start min-w-0 max-w-full">
+              <MediaDetails item={currentItem} />
+            </div>
+          )}
+          {config.showWeather && (
+            <div className="ml-auto shrink-0">
+              <WeatherWidget tempUnit={config.tempUnit} />
+            </div>
+          )}
         </div>
       )}
 
       {/* 6. Ambient Control Bar (Revealed on remote/mouse activity) */}
       <div
-        className={`absolute bottom-6 left-1/2 -translate-x-1/2 z-30 transition-all duration-300 ${
+        className={`absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-30 transition-all duration-300 ${
           showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
       >

@@ -7,6 +7,7 @@ import { createFileStore } from './stores/fileStore.mjs';
 import { createFirestoreStore } from './stores/firestoreStore.mjs';
 import { createSessionService } from './sessions.mjs';
 import { createHandler } from './app.mjs';
+import { createInbox } from './inbox.mjs';
 
 /**
  * Locally, generate an encryption key on first run and keep it beside the
@@ -34,9 +35,11 @@ const store =
     ? createFirestoreStore({ projectId: config.firestoreProject || undefined })
     : createFileStore(config.dataDir);
 
+const encryptionKey = await resolveEncryptionKey();
+
 const sessions = createSessionService({
   store,
-  encryptionKey: await resolveEncryptionKey(),
+  encryptionKey,
   // Re-read .env while unconfigured, so adding credentials needs no restart.
   configError: () => (assertConfigured() ? (refreshConfig(), assertConfigured()) : null),
 });
@@ -44,7 +47,12 @@ const sessions = createSessionService({
 // Cloud Run serves only the API; the app itself is on GitHub Pages.
 const distDir = config.store === 'firestore' ? null : resolve(projectRoot, 'dist');
 
-const server = createServer(createHandler({ sessions, allowedOrigins: config.allowedOrigins, distDir }));
+// Lets a phone send a shared-album link to a TV via the QR code.
+const inbox = createInbox({ store, encryptionKey });
+
+// Cloud Run sets K_SERVICE; only there is X-Forwarded-For written by a proxy we trust.
+const trustProxy = Boolean(process.env.K_SERVICE);
+const server = createServer(createHandler({ sessions, inbox, allowedOrigins: config.allowedOrigins, distDir, trustProxy }));
 
 server.listen(config.port, () => {
   console.log(`\n  Photo Frame helper on http://localhost:${config.port}  (store: ${store.name})`);

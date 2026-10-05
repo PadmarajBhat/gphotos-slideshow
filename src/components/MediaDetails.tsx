@@ -61,11 +61,11 @@ export const MediaDetails: React.FC<MediaDetailsProps> = ({ item }) => {
   return (
     <div
       aria-label="Image Details"
-      className="ambient-glass rounded-2xl p-5 max-w-lg select-none pointer-events-none transition-all duration-300 shadow-2xl flex flex-col gap-2"
+      className="ambient-glass rounded-2xl p-4 sm:p-5 max-w-lg select-none pointer-events-none transition-all duration-300 shadow-2xl flex flex-col gap-2"
     >
       {/* Location */}
       {resolvedLocation ? (
-        <div className="flex items-center gap-2 text-amber-300 font-semibold text-lg lg:text-xl drop-shadow">
+        <div className="flex items-center gap-2 min-w-0 text-amber-300 font-semibold text-base sm:text-lg lg:text-xl drop-shadow">
           <MapPin className="w-5 h-5 shrink-0" />
           <span className="truncate">{resolvedLocation}</span>
         </div>

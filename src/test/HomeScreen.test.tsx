@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { HomeScreen, TAGLINE } from '../components/HomeScreen';
-import { OFFLINE_STATUS, AmbientStatus } from '../api/ambient';
 import { RecentAlbum } from '../utils/recentAlbums';
 
 const recentAlbums: RecentAlbum[] = [
@@ -14,9 +13,7 @@ function renderHome(overrides: Partial<React.ComponentProps<typeof HomeScreen>> 
   const handlers = {
     onDismissNotice: vi.fn(),
     onPlayDemo: vi.fn(),
-    onPlayGoogle: vi.fn(),
     onPlayRecent: vi.fn(),
-    onConnect: vi.fn().mockResolvedValue(undefined),
     onOpenSettings: vi.fn(),
   };
   const utils = render(
@@ -24,8 +21,7 @@ function renderHome(overrides: Partial<React.ComponentProps<typeof HomeScreen>> 
       recent={[]}
       demoCover="https://x/demo.jpg"
       demoCount={7}
-      ambientStatus={{ ...OFFLINE_STATUS, phase: 'offline' } as AmbientStatus}
-      googleCount={0}
+      rightPanel={<div data-testid="right-panel">QR goes here</div>}
       {...handlers}
       {...overrides}
     />
@@ -65,11 +61,9 @@ describe('HomeScreen', () => {
     expect(onPlayRecent).toHaveBeenCalledWith(recentAlbums[0]);
   });
 
-  it('shows the pairing QR on the right with no clicks', () => {
-    const { onConnect } = renderHome({
-      ambientStatus: { ...OFFLINE_STATUS, phase: 'disconnected' } as AmbientStatus,
-    });
-    expect(onConnect).toHaveBeenCalledTimes(1);
+  it('shows whichever panel the app supplies on the right', () => {
+    renderHome();
+    expect(screen.getByTestId('right-panel')).toHaveTextContent('QR goes here');
   });
 
   it('moves between tiles with the remote', () => {

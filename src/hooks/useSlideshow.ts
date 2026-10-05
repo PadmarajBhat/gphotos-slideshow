@@ -18,6 +18,15 @@ const MIN_SLIDE_MS = 3000;
  */
 const MAX_VIDEO_MS = 10 * 60 * 1000;
 
+/**
+ * A few broken items in a row are skipped at once. Past that, everything is
+ * probably failing (offline, or Google throttling the network), so wait
+ * longer between tries instead of racing through the whole album.
+ */
+const FAST_SKIPS = 3;
+const FIRST_RETRY_MS = 5000;
+const MAX_RETRY_MS = 60 * 1000;
+
 export function useSlideshow({
   items,
   durationSeconds,
@@ -27,6 +36,11 @@ export function useSlideshow({
   const [isPlaying, setIsPlaying] = useState(true);
   const [activeRandomEffect, setActiveRandomEffect] = useState<Exclude<TransitionType, 'random'>>('ken-burns');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [retryDelayMs, setRetryDelayMs] = useState(0);
+  const failuresRef = useRef(0);
+  const failedIndexRef = useRef<number | null>(null);
+  const currentIndexRef = useRef(currentIndex);
+  currentIndexRef.current = currentIndex;
 
   const currentItem: MediaItem | undefined = items[currentIndex];
   const isVideo = currentItem ? isVideoItem(currentItem) : false;
@@ -71,8 +85,26 @@ export function useSlideshow({
    */
   const handleMediaError = useCallback(() => {
     if (items.length <= 1) return;
-    nextSlide();
+    // A video can report the same failure several ways; count it once.
+    if (failedIndexRef.current === currentIndexRef.current) return;
+    failedIndexRef.current = currentIndexRef.current;
+
+    failuresRef.current += 1;
+    if (failuresRef.current <= FAST_SKIPS) {
+      nextSlide();
+      return;
+    }
+    // The auto-advance timer below picks this delay up.
+    const backoff = FIRST_RETRY_MS * 2 ** (failuresRef.current - FAST_SKIPS - 1);
+    setRetryDelayMs(Math.min(MAX_RETRY_MS, backoff));
   }, [items.length, nextSlide]);
+
+  /** An item showed fine, so whatever was failing has recovered. */
+  const handleMediaLoaded = useCallback(() => {
+    failuresRef.current = 0;
+    failedIndexRef.current = null;
+    setRetryDelayMs(0);
+  }, []);
 
   // Warm the next photo so the transition does not show a half-loaded image.
   useEffect(() => {
@@ -95,7 +127,12 @@ export function useSlideshow({
       return;
     }
 
-    const delayMs = isVideo ? MAX_VIDEO_MS : Math.max(MIN_SLIDE_MS, durationSeconds * 1000);
+    const delayMs =
+      retryDelayMs > 0
+        ? retryDelayMs
+        : isVideo
+          ? MAX_VIDEO_MS
+          : Math.max(MIN_SLIDE_MS, durationSeconds * 1000);
     timerRef.current = setTimeout(() => {
       nextSlide();
     }, delayMs);
@@ -106,7 +143,7 @@ export function useSlideshow({
         timerRef.current = null;
       }
     };
-  }, [isPlaying, items.length, isVideo, durationSeconds, nextSlide, currentIndex]);
+  }, [isPlaying, items.length, isVideo, durationSeconds, nextSlide, currentIndex, retryDelayMs]);
 
   return {
     currentIndex,
@@ -120,6 +157,9 @@ export function useSlideshow({
     setIsPlaying,
     handleVideoEnded,
     handleMediaError,
+    handleMediaLoaded,
+    /** True while photos keep failing and the slideshow is waiting to retry. */
+    isRetrying: retryDelayMs > 0,
     setCurrentIndex,
   };
 }

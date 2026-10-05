@@ -77,6 +77,9 @@ src/
     - A rejected `play()` promise advances.
 - **Pause semantics**: pausing stops both the slide timer and the `<video>` element.
 - **Image failures**: `onError` on the photo element advances, so an expired Google URL cannot strand the slideshow.
+- **Failure back-off** (`useSlideshow`): the first three consecutive failures skip at once. After that every failure is assumed systemic (offline, or Google answering `429` to the network) and the next try waits 5s, 10s, 20s… capped at 60s, with an on-screen notice. Any successful `load` / `playing` resets it. Each item counts once however many error events it fires. Without this, a throttled network made the frame request hundreds of full-size images in seconds, deepening the throttle.
+- **Screen wake lock** (`useWakeLock`): held while the slideshow is mounted and re-acquired on `visibilitychange`, because browsers drop it whenever the tab is hidden. Unsupported or refused is silently ignored.
+- **Responsive HUD**: details and weather share one bottom flex row (`sm` and up) so they cannot overlap; the details card shrinks first. Below 640px the row becomes a column with the weather, compacted to temperature and condition, above the details. The control bar tightens below 640px and hides the fullscreen button where `requestFullscreen` is missing.
 
 ## 4. Long-Running Operation
 An ambient frame is expected to run for days, which outlives several Google expiry windows:
@@ -128,7 +131,7 @@ The browser calls only `/api/ambient/{status,connect,disconnect,media}`. Vite pr
 ### Refresh cadence versus quota
 `baseUrl` expires at 60 minutes, but only 240 requests/device/day are allowed. A 600-item library costs 6 paged requests per full refresh, so the helper refreshes every **50 minutes**: about 173 requests/day, inside both limits. `ambientMapping.test.ts` asserts this arithmetic so a future change to either constant fails the build.
 
-### Three media sources, deliberately unequal
+### Three media sources, deliberately unequal (superseded by section 9: shared albums now load completely, with videos)
 | Source | Setup | Completeness | Videos | Static hosting |
 |---|---|---|---|---|
 | Ambient API | Pair from phone | Complete | Play | Needs the helper |
@@ -137,7 +140,7 @@ The browser calls only `/api/ambient/{status,connect,disconnect,media}`. Vite pr
 
 The shared-album limitation is inherent: Google embeds only an initial batch of photos in the album page and lazy-loads the rest through an undocumented internal RPC. It is retained as the zero-setup path, with its limits stated in the UI.
 
-## 8. Deployment Topology (2026-10-04)
+## 8. Deployment Topology (2026-10-04, superseded by section 9)
 
 Two deployment targets, deliberately unequal:
 
@@ -147,3 +150,27 @@ Two deployment targets, deliberately unequal:
 **The helper must never be exposed publicly.** It has no authentication and is single-tenant by design: one frame, one Google account, one refresh token. A public instance would serve the owner's photos to anyone with the URL. Remote access, if wanted, must go through an authenticating layer (e.g. Tailscale), never an open port.
 
 Mobile install is via `public/manifest.webmanifest` (`display: fullscreen`). All manifest paths are relative so it resolves under both `/` and `/<repo>/`.
+
+## 9. Shared Albums Through a Hosted Helper (2026-10-05)
+
+The Ambient API turned out to be partner-only (`403` until accepted), so it is now behind `VITE_AMBIENT_API` (default off) and the shared-album link became the primary source, loaded **completely** by the helper.
+
+### Topology
+- **GitHub Pages** serves the app, built with `VITE_HELPER_URL` pointing at Cloud Run.
+- **Cloud Run** (`us-central1`, the free-tier region; `maxScale 1` so the in-memory rate limiter is exact) runs `server/` from the `Dockerfile`. `.gcloudignore` uploads only the `Dockerfile` and `server/`.
+- **Firestore** holds per-screen records. Every document carries `expireAt`, and TTL policies on `sessions`, `media`, `sendCodes` and `inboxes` delete them.
+
+This replaces section 8's "never expose the helper" rule: the helper is now multi-tenant by design. Each screen authenticates with its own 32-byte random secret (`X-Frame-Session`), stored only as a SHA-256 hash, and nothing the helper holds lets one screen read another's data.
+
+### Whole-album loading (`server/sharedAlbum.mjs`)
+The album page's `AF_initDataCallback` block gives the first page of items, a continuation token and the album key. Further pages come from the internal `batchexecute` RPC `snAcKc`, using the session tokens from `WIZ_global_data` and the link's `key`. Limits: 40 pages, 10,000 items, 40s. Videos are flagged in the item metadata and play from `<base>=dv`. If parsing fails it falls back to scraping the page's photo URLs. A real 687-item album loads completely in about 5s.
+
+### Phone-to-TV hand-off (`server/inbox.mjs`)
+- The TV asks for a code (`/api/send-code`); the code is reused until two minutes before expiry, then replaced and the old one retired.
+- Codes: 8 characters from a 31-symbol alphabet without look-alikes, 15-minute life, single use. `/api/send` is rate-limited to 10 attempts per address per 10 minutes, so guessing is infeasible.
+- The phone's link is validated against the same host allowlist before the code is spent, then stored AES-256-GCM-encrypted as the inbox's pending link.
+- The TV polls `/api/inbox` every 3s (also while the page reports itself hidden, as TV browsers do). A link is handed over once; one not collected within an hour is discarded.
+- Firestore expiries: codes at their own expiry, inboxes a day after last use.
+
+### Client address for rate limiting
+Behind Cloud Run the socket peer is Google's front end, which **appends** the caller's address to `X-Forwarded-For`; anything earlier in the header is caller-controlled. `clientIp` therefore takes the last entry, and only when `K_SERVICE` is set. Elsewhere the header is ignored and the socket address is used. Trusting the first entry would let a caller dodge the limit by sending a different forged address on every request.

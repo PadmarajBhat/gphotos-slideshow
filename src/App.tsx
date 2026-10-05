@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { MediaItem, SlideshowConfig } from './types';
 import { useAmbientPhotos } from './hooks/useAmbientPhotos';
+import { SHARED_REFRESH_MS, useSharedAlbumRefresh } from './hooks/useSharedAlbumRefresh';
 import { fetchSharedAlbum } from './api/sharedAlbum';
 import { DEMO_ALBUM, DEMO_ITEMS } from './api/demoData';
 import { loadConfig, saveConfig } from './utils/storage';
@@ -16,6 +17,10 @@ import { HomeScreen } from './components/HomeScreen';
 import { SlideshowView } from './components/SlideshowView';
 import { SettingsModal } from './components/SettingsModal';
 import { SharedAlbumModal } from './components/SharedAlbumModal';
+import { PhotosPanel } from './components/PhotosPanel';
+import { SendPanel } from './components/SendPanel';
+import { SendToFrame } from './components/SendToFrame';
+import { AMBIENT_ENABLED } from './api/ambient';
 
 interface Playing {
   key: string;
@@ -27,9 +32,24 @@ interface CachedSharedAlbum {
   title: string;
   cover: string;
   items: MediaItem[];
+  loadedAt: number;
+}
+
+const SHARED_PREFIX = 'shared:';
+
+/** Set when a phone opened the TV's QR code: ?send=CODE. */
+function sendCodeFromUrl(): string | null {
+  if (typeof window === 'undefined') return null;
+  return new URLSearchParams(window.location.search).get('send');
 }
 
 export const App: React.FC = () => {
+  const sendCode = sendCodeFromUrl();
+  // A phone that scanned the TV's QR gets the send page, not the frame.
+  return sendCode ? <SendToFrame code={sendCode} /> : <FrameApp />;
+};
+
+const FrameApp: React.FC = () => {
   const [config, setConfig] = useState<SlideshowConfig>(loadConfig);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSharedOpen, setIsSharedOpen] = useState(false);
@@ -89,18 +109,18 @@ export const App: React.FC = () => {
   const playShared = useCallback(
     async (url: string) => {
       let album = sharedCache.current.get(url);
-      if (!album) {
+      if (!album || Date.now() - album.loadedAt > SHARED_REFRESH_MS) {
         setIsLoading(true);
         try {
           const { album: meta, items } = await fetchSharedAlbum(url);
-          album = { title: meta.title, cover: meta.coverPhotoBaseUrl, items };
+          album = { title: meta.title, cover: meta.coverPhotoBaseUrl, items, loadedAt: Date.now() };
           sharedCache.current.set(url, album);
         } finally {
           setIsLoading(false);
         }
       }
 
-      const key = `shared:${url}`;
+      const key = `${SHARED_PREFIX}${url}`;
       setPlaying({ key, kind: 'shared', items: album.items });
       remember({
         key,
@@ -113,6 +133,14 @@ export const App: React.FC = () => {
     },
     [remember]
   );
+
+  // Keep a long-running shared album fresh without interrupting it.
+  const playingSharedUrl = playing?.kind === 'shared' ? playing.key.slice(SHARED_PREFIX.length) : null;
+  useSharedAlbumRefresh(playingSharedUrl, ({ album: meta, items }) => {
+    if (!playingSharedUrl) return;
+    sharedCache.current.set(playingSharedUrl, { title: meta.title, cover: meta.coverPhotoBaseUrl, items, loadedAt: Date.now() });
+    setPlaying((current) => (current?.key === `${SHARED_PREFIX}${playingSharedUrl}` ? { ...current, items } : current));
+  });
 
   const handleSharedSubmit = useCallback(
     async (url: string) => {
@@ -154,15 +182,30 @@ export const App: React.FC = () => {
         recent={visibleRecent}
         demoCover={DEMO_ALBUM.coverPhotoBaseUrl}
         demoCount={DEMO_ITEMS.length}
-        ambientStatus={ambient.status}
-        googleCount={ambient.items.length || ambient.status.itemCount}
+        rightPanel={
+          AMBIENT_ENABLED ? (
+            <PhotosPanel
+              status={ambient.status}
+              itemCount={ambient.items.length || ambient.status.itemCount}
+              cover={googleCover}
+              onConnect={ambient.connect}
+              onPlay={playGoogle}
+            />
+          ) : (
+            <SendPanel
+              onAlbumLink={(url) => {
+                playShared(url).catch((err: unknown) =>
+                  setNotice(err instanceof Error ? err.message : 'Could not load that album.')
+                );
+              }}
+            />
+          )
+        }
         googleCover={googleCover}
         notice={notice}
         onDismissNotice={() => setNotice(null)}
         onPlayDemo={playDemo}
-        onPlayGoogle={playGoogle}
         onPlayRecent={playRecent}
-        onConnect={ambient.connect}
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
 

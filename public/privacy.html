@@ -77,6 +77,13 @@
       Google Photos at any time.
     </li>
     <li>
+      <strong>Sending an album from your phone:</strong> the screen shows a one-time code as a QR
+      code. When you send a shared-album link with it, the server holds that link, encrypted with
+      AES-256-GCM, only until your screen collects it, which normally takes a few seconds. A link
+      not collected within an hour is discarded. Codes expire after 15 minutes and are used once.
+      Both are deleted from the database automatically within about a day.
+    </li>
+    <li>
       <strong>On your device</strong> (the browser's local storage): your slideshow settings, the last
       three albums played on that screen including any shared-album link you entered, and the
       screen's random identifier.
@@ -117,7 +124,9 @@
   <p>
     All connections use HTTPS. Stored sign-in tokens are encrypted, the encryption key is kept in
     Google Secret Manager, and the app's server runs under a dedicated account that can only reach
-    its own database and keys.
+    its own database and keys. Google Cloud keeps its standard request logs (the time, the address
+    the request came from, and the path requested, never the album link) for 30 days, and the
+    server briefly counts requests per address in memory to limit abuse.
   </p>
 
   <h2>Children</h2>

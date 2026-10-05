@@ -42,7 +42,7 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({ tempUnit = 'celsiu
   // isLoading === false, which showed "unavailable" during normal startup.
   if (isPending && !isError) {
     return (
-      <div className="ambient-glass rounded-2xl px-6 py-4 flex items-center gap-3 text-slate-300 shadow-2xl">
+      <div className="ambient-glass rounded-2xl px-4 py-3 sm:px-6 sm:py-4 flex items-center gap-3 text-slate-300 shadow-2xl">
         <CloudSun className="w-7 h-7 text-amber-300 animate-pulse" />
         <span className="text-sm font-medium">Checking local weather...</span>
       </div>
@@ -51,7 +51,7 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({ tempUnit = 'celsiu
 
   if (isError || !weather) {
     return (
-      <div className="ambient-glass rounded-2xl px-6 py-4 flex items-center gap-2 text-slate-400 shadow-2xl text-xs">
+      <div className="ambient-glass rounded-2xl px-4 py-3 sm:px-6 sm:py-4 flex items-center gap-2 text-slate-400 shadow-2xl text-xs">
         <span>Weather temporarily unavailable</span>
       </div>
     );
@@ -60,24 +60,25 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({ tempUnit = 'celsiu
   return (
     <div
       aria-label="Local Weather Details"
-      className="ambient-glass rounded-2xl p-5 select-none pointer-events-none transition-all duration-300 shadow-2xl flex flex-col gap-1.5"
+      className="ambient-glass rounded-2xl px-4 py-3 sm:p-5 select-none pointer-events-none transition-all duration-300 shadow-2xl flex flex-col gap-1.5"
     >
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4">
         <div className="shrink-0">{renderWeatherIcon()}</div>
         <div className="flex flex-col">
           <div className="flex items-baseline gap-1">
-            <span className="text-3xl lg:text-4xl font-extrabold text-white tracking-tight drop-shadow">
+            <span className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight drop-shadow">
               {formatTemp(weather.temperature)}
             </span>
           </div>
-          <span className="text-sm lg:text-base font-semibold text-amber-300 drop-shadow">
+          <span className="text-xs sm:text-sm lg:text-base font-semibold text-amber-300 drop-shadow">
             {weather.conditionText}
           </span>
         </div>
       </div>
 
-      {/* Precipitation / Rain indicators & humidity */}
-      <div className="flex items-center gap-3 mt-1 text-xs lg:text-sm text-slate-300 font-medium">
+      {/* Precipitation / Rain indicators & humidity. Left out on phones, where
+          the card shares the bottom corner with the image details. */}
+      <div className="hidden sm:flex items-center gap-3 mt-1 text-xs lg:text-sm text-slate-300 font-medium">
         <div className="flex items-center gap-1">
           <Droplets className="w-3.5 h-3.5 text-blue-300 shrink-0" />
           <span>{weather.precipitation > 0 ? `${weather.precipitation} mm rain` : 'No rain forecast'}</span>
@@ -88,7 +89,7 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({ tempUnit = 'celsiu
 
       {/* City or Region tag */}
       {weather.city && (
-        <div className="text-xs text-slate-400 truncate max-w-[200px]">
+        <div className="hidden sm:block text-xs text-slate-400 truncate max-w-[200px]">
           {weather.city}
           {weather.region ? `, ${weather.region}` : ''}
         </div>

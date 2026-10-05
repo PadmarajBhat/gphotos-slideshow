@@ -3,7 +3,7 @@
 **Source of truth:** the original project request, reproduced verbatim in [Appendix A](#appendix-a--original-request-verbatim).
 **Purpose:** turn that request into numbered, individually testable requirements, and track implementation status against them.
 
-**Status assessed:** 2026-09-28, after the compliance pass described in [specs/tasks.md](specs/tasks.md) Phase 2.
+**Status assessed:** 2026-10-05, after the move to shared albums sent from a phone (Ambient API found to be partner-only). Earlier assessment: 2026-09-28, [specs/tasks.md](specs/tasks.md) Phase 2.
 
 | Legend | Meaning |
 |---|---|
@@ -21,19 +21,19 @@
 |---|---|---|---|---|
 | REQ-P1 | The project must be open source. | Explicit | A permissive licence file is present in the repository. | ✅ Met — Apache License 2.0 (`LICENSE`) |
 | REQ-P2 | The application must be web-based. | Explicit | Runs in a standard browser from a URL. No native install, no app-store distribution. | ✅ Met — React 19 + Vite SPA |
-| REQ-P3 | It must run on the target Sony Bravia TV (W95C class) and on any Android TV or other screen capable of running the web app. | Explicit | A production bundle can be built and served; the app loads and is fully operable in a TV browser using only the TV remote. | ✅ Met — production build succeeds; full D-pad operability implemented and tested. On-device W95C verification still outstanding. |
-| REQ-P4 | The application must be very lightweight. | Explicit | Initial payload small enough for a TV browser to load quickly over home broadband. | ✅ Met — 339 KB JS + 26 KB CSS, ~102 KB gzipped |
-| REQ-P5 | The application must be deployable as a static site with no backend server. | Implied | `npm run build` yields a static bundle hostable on any static host. | ⚠️ Partial, by design — demo and shared-album routes still run as a pure static site. The Google Photos route needs the local helper, because Google mandates a client secret for the Ambient API and a browser cannot hold one. Approved trade-off: the helper runs on your own hardware. |
+| REQ-P3 | It must run on the target Sony Bravia TV (W95C class) and on any Android TV or other screen capable of running the web app. | Explicit | A production bundle can be built and served; the app loads and is fully operable in a TV browser using only the TV remote. | ✅ Met — D-pad operable on TV; the layout was measured with no overlapping overlays at 360×740, 375×812, 812×375, 768×1024 and 1920×1080, and phones and tablets keep the screen awake during a slideshow. On-device W95C verification still outstanding. |
+| REQ-P4 | The application must be very lightweight. | Explicit | Initial payload small enough for a TV browser to load quickly over home broadband. | ✅ Met — 357 KB JS + 24 KB CSS, ~115 KB gzipped |
+| REQ-P5 | The application must be deployable as a static site with no backend server. | Implied | `npm run build` yields a static bundle hostable on any static host. | ⚠️ Partial, by design — the app is a static site, but shared albums and the phone-to-TV hand-off need a small helper, because a browser cannot read a Google Photos album cross-origin. The helper is dependency-free, never stores photos, and runs on Cloud Run's free tier or on your own hardware. |
 
 ## 2. Google Photos Integration
 
 | ID | Requirement | Source | Acceptance criteria | Status |
 |---|---|---|---|---|
-| REQ-G1 | The user must be able to sign in with their Google account. | Explicit | Clicking sign-in completes Google OAuth and yields a usable access token, with no developer-level setup required of the end user. | ✅ Met, by a different mechanism — Google removed the sign-in-and-list-albums capability entirely (see REQ-G5), so this is now served by the **Photos Ambient API**: the user approves the frame once from their phone via device-code pairing. No sign-in on the TV at all. |
-| REQ-G2 | After sign-in, Google Photos must show **all** the user's albums. | Explicit | Every album in the account is listed, regardless of count. | ✅ Met — the Ambient helper pages through `nextPageToken` at 100/request until exhausted, so a 600+ item library arrives complete. The user chooses which albums feed the frame in the Google Photos app. |
-| REQ-G3 | Clicking an album must start the slideshow. | Explicit | Selecting any album enters full-screen playback of that album's media. | ✅ Met — an empty or failed album now reports why instead of doing nothing |
-| REQ-G4 | Album media must include both photos and videos. | Implied | Both media types are fetched and rendered. | ✅ Met |
-| REQ-G5 | The chosen Google Photos access method must be supported by Google's current API terms. | Implied | The scopes and endpoints used are ones Google still grants to third-party apps. | ✅ Resolved — **confirmed**: Google removed `photoslibrary.readonly` on 31 March 2025 and it now returns 403 PERMISSION_DENIED. The Library API code was deleted rather than left to fail. Replaced with the Google Photos **Ambient API**, which Google built for TV and ambient displays and which remains supported. |
+| REQ-G1 | The user must be able to sign in with their Google account. | Explicit | Clicking sign-in completes Google OAuth and yields a usable access token, with no developer-level setup required of the end user. | ⚠️ Partial, blocked externally — Google has closed sign-in for independent photo apps: the Library scope was removed (REQ-G5), the Picker scope is refused by the TV device flow, and the Ambient API answers 403 until Google accepts the app into its partner program. The Ambient integration is built and kept switched off. In its place, the user sends an album from their phone by scanning a QR code, with no sign-in at all. |
+| REQ-G2 | After sign-in, Google Photos must show **all** the user's albums. | Explicit | Every album in the account is listed, regardless of count. | ⚠️ Partial, blocked externally — no current Google API lets an independent app list a user's albums. Every album the user shares loads **completely**: verified on a 687-item album (627 photos, 60 videos) in about 5 seconds. |
+| REQ-G3 | Clicking an album must start the slideshow. | Explicit | Selecting any album enters full-screen playback of that album's media. | ✅ Met — sending an album, or choosing it under Continue, starts full-screen playback; an empty or failed album reports why |
+| REQ-G4 | Album media must include both photos and videos. | Implied | Both media types are fetched and rendered. | ✅ Met — shared-album videos play in full from Google's video stream |
+| REQ-G5 | The chosen Google Photos access method must be supported by Google's current API terms. | Implied | The scopes and endpoints used are ones Google still grants to third-party apps. | ✅ Resolved — shared-album links need no OAuth scope at all. The Ambient API, the only supported scope for frames, stays off behind `VITE_AMBIENT_API` until partner acceptance. |
 
 ## 3. Slideshow Playback
 
@@ -51,29 +51,29 @@
 | ID | Requirement | Source | Acceptance criteria | Status |
 |---|---|---|---|---|
 | REQ-H1 | Top-left must show the current date and time for the viewer's own region (Indian time in India, US time in the US). | Explicit | Time, date and weekday reflect the device's detected timezone and locale, updating live. | ✅ Met — derived from `Intl` resolved timezone, ticking every second |
-| REQ-H2 | Bottom-left must show image details: where it was taken, when it was taken, and any other available information. | Explicit | Location, capture timestamp, description and camera details are shown when available. | ⚠️ Partial — capture time and dimensions come through from the Ambient API, and camera EXIF still renders for any source that supplies it. Location remains unavailable: no current Google Photos API exposes geodata to third parties. Place names resolve only where a source carries coordinates. Documented rather than implied. |
+| REQ-H2 | Bottom-left must show image details: where it was taken, when it was taken, and any other available information. | Explicit | Location, capture timestamp, description and camera details are shown when available. | ⚠️ Partial — capture time and description come through for shared albums, and camera EXIF renders for any source that supplies it. Location is unavailable: no current Google Photos source exposes geodata to third parties. Place names resolve only where a source carries coordinates. |
 | REQ-H3 | Bottom-right must show current local weather: temperature, and whether it will rain or be sunny. | Explicit | Live temperature, condition text, matching icon, precipitation and humidity for the viewer's location. | ✅ Met — the startup state now reads as loading rather than unavailable |
-| REQ-H4 | Overlays must not obscure the photo and must be dismissible. | Implied | Overlays sit in screen corners and can be hidden. | ✅ Met — corner placement, toggle via `H` or the control bar |
+| REQ-H4 | Overlays must not obscure the photo and must be dismissible. | Implied | Overlays sit in screen corners and can be hidden. | ✅ Met — corner placement, toggle via `H` or the control bar; on screens under 640px the overlays compact and stack so none covers another |
 
 ## 5. Usability — TV and Elderly Users
 
 | ID | Requirement | Source | Acceptance criteria | Status |
 |---|---|---|---|---|
-| REQ-U1 | The app must be fully operable with a TV remote. | Explicit ("targeting it for my TV") | D-pad arrows move focus between albums, OK/Enter selects, Back returns — with a clearly visible focus indicator. | ✅ Met — explicit D-pad spatial navigation on the album grid (arrows move, Enter opens), plus focus containment in both dialogs so a remote cannot wander behind them. Covered by AlbumGrid and SettingsModal tests; on-device W95C check still outstanding. |
-| REQ-U2 | The app must be simple enough for an elderly user to operate. | Explicit | An elderly user can go from opening the app to a running slideshow of their own photos without developer knowledge. | ✅ Met — "Use My Photos" now opens with the shared-album link tab: paste one link, no Google Cloud project, no consent screen, no sign-in on the TV. OAuth remains available as the advanced route. |
+| REQ-U1 | The app must be fully operable with a TV remote. | Explicit ("targeting it for my TV") | D-pad arrows move focus between albums, OK/Enter selects, Back returns — with a clearly visible focus indicator. | ✅ Met — D-pad spatial navigation on the home screen (the latest album is pre-focused, so one OK resumes it), plus focus containment in dialogs. Covered by HomeScreen, spatial-navigation and SettingsModal tests; on-device W95C check still outstanding. |
+| REQ-U2 | The app must be simple enough for an elderly user to operate. | Explicit | An elderly user can go from opening the app to a running slideshow of their own photos without developer knowledge. | ✅ Met — scan the QR on the TV, paste an album link on the phone, tap Send. Nothing to type on the TV, no Google Cloud project, no sign-in. Next time it is one press of OK under Continue. |
 | REQ-U3 | User preferences must persist between sessions. | Implied | Duration, transition, temperature unit, clock format and overlay toggles survive a reload or TV power-cycle. | ✅ Met — preferences persist to localStorage with per-field sanitisation, so a corrupt entry cannot stop the frame starting |
-| REQ-U4 | The app must run unattended for long periods as an ambient photo frame. | Implied | Playback continues correctly for many hours without user intervention. | ✅ Met — tokens are silently renewed 5 minutes before expiry, Google media URLs refresh every 45 minutes, and the control bar now stays hidden between slides |
+| REQ-U4 | The app must run unattended for long periods as an ambient photo frame. | Implied | Playback continues correctly for many hours without user intervention. | ⚠️ Partial — runs unattended: shared albums reload every 6 hours, and when photos stop loading the slideshow backs off (5s doubling to 60s) instead of racing through the album. Open: how long Google's shared-album photo links stay valid is undocumented and not yet measured over days; the 6-hour reload is the mitigation. |
 | REQ-U5 | Interface text and controls must be large and high-contrast for 10-foot viewing. | Implied | Typography and focus rings are legible from a couch. | ✅ Met — large type, 4 px amber focus ring |
 
 ## 6. Privacy & Trust
 
 | ID | Requirement | Source | Acceptance criteria | Status |
 |---|---|---|---|---|
-| REQ-T1 | The app must not save images permanently. | Explicit | No image or video is written to disk, local storage, IndexedDB or a service-worker cache. | ✅ Met — verified: no service worker, no cache API, no IndexedDB; only the OAuth client ID is stored |
+| REQ-T1 | The app must not save images permanently. | Explicit | No image or video is written to disk, local storage, IndexedDB or a service-worker cache. | ✅ Met — verified: no service worker, no cache API, no IndexedDB. localStorage holds only preferences, the last three albums and the screen's random id; the helper stores no photos |
 | REQ-T2 | The app must do nothing malicious in the background. | Explicit | No analytics, tracking, fingerprinting or undisclosed network activity. | ✅ Met — no analytics or tracking code present |
-| REQ-T3 | There must be no trust issues with the app. | Explicit | Every outbound network destination is disclosed to the user, and privacy claims in the documentation match actual behaviour. | ✅ Met — every outbound destination is now listed in the README privacy table with what it receives and how to avoid it, and each is switchable off in Settings |
-| REQ-T4 | Credentials must never be exposed or persisted. | Implied | Tokens live in memory only and are revoked on sign-out; no password is ever handled by the app. | ✅ Met |
-| REQ-T5 | The project must not ship an exploitable development configuration. | Implied | Dev tooling does not expose an unauthenticated network service. | ✅ Met — the proxy accepts only HTTPS URLs on an allowlist of Google Photos hosts, re-validates every redirect hop and caps the response size |
+| REQ-T3 | There must be no trust issues with the app. | Explicit | Every outbound network destination is disclosed to the user, and privacy claims in the documentation match actual behaviour. | ✅ Met — every outbound destination, including the photo helper, is listed in the README privacy table with what it receives; the privacy policy describes what the helper keeps and for how long |
+| REQ-T4 | Credentials must never be exposed or persisted. | Implied | Tokens live in memory only and are revoked on sign-out; no password is ever handled by the app. | ✅ Met — no passwords or Google tokens in the active flow. The screen's secret is stored by the server only as a SHA-256 hash; links in transit are AES-256-GCM encrypted |
+| REQ-T5 | The project must not ship an exploitable development configuration. | Implied | Dev tooling does not expose an unauthenticated network service. | ✅ Met — the album loader accepts only HTTPS Google Photos hosts and re-validates every redirect; send codes are single-use with a 15-minute life; the send endpoint is rate-limited per address, keyed on the address Cloud Run itself appends so a forged header cannot dodge it |
 
 ## 7. Internationalization
 
@@ -85,9 +85,9 @@
 
 | ID | Requirement | Source | Acceptance criteria | Status |
 |---|---|---|---|---|
-| REQ-Q1 | The project must build and its tests must pass. | Implied | `npm run build` and `npm test` both succeed from a clean checkout. | ✅ Met — lint, 105 tests and the production build all pass; CI enforces all three on Node 20 and 22 |
+| REQ-Q1 | The project must build and its tests must pass. | Implied | `npm run build` and `npm test` both succeed from a clean checkout. | ✅ Met — lint, 216 tests and the production build all pass; CI enforces all three on Node 20 and 22 |
 | REQ-Q2 | The repository must contain no unreachable or misleading code. | Implied | Every module is reachable from the application entry point; automated checks genuinely check. | ✅ Met — the shared-album feature is wired into the connect flow; the drift checker now genuinely fails on drift; dead CSS classes and the unrelated colour palette are gone |
-| REQ-Q3 | Core behaviour must be covered by automated tests. | Implied | Playback, video handling, formatting and API mapping are tested. | ✅ Met — 105 tests across 14 files now cover authentication, API pagination and errors, remote keys, shared-album parsing, D-pad navigation, preferences and media URLs |
+| REQ-Q3 | Core behaviour must be covered by automated tests. | Implied | Playback, video handling, formatting and API mapping are tested. | ✅ Met — 216 tests across 27 files cover playback and back-off, video handling, the phone-to-TV hand-off (server and both screens), album loading and pagination, the helper's HTTP layer and storage, remote keys, navigation, preferences and media URLs |
 
 ---
 
@@ -95,23 +95,23 @@
 
 | Section | ✅ Met | ⚠️ Partial | ❌ Not met | Was (before Phase 2) |
 |---|---|---|---|---|
-| 1. Platform & Distribution | 5 | 0 | 0 | 3 / 2 / 0 |
-| 2. Google Photos Integration | 4 | 1 | 0 | 1 / 3 / 1 |
+| 1. Platform & Distribution | 4 | 1 | 0 | 3 / 2 / 0 |
+| 2. Google Photos Integration | 3 | 2 | 0 | 1 / 3 / 1 |
 | 3. Slideshow Playback | 6 | 0 | 0 | 2 / 4 / 0 |
 | 4. Ambient Overlays | 3 | 1 | 0 | 2 / 2 / 0 |
-| 5. Usability (TV / Elderly) | 5 | 0 | 0 | 1 / 0 / 4 |
+| 5. Usability (TV / Elderly) | 4 | 1 | 0 | 1 / 0 / 4 |
 | 6. Privacy & Trust | 5 | 0 | 0 | 3 / 1 / 1 |
 | 7. Internationalization | 0 | 1 | 0 | 0 / 1 / 0 |
 | 8. Engineering Quality | 3 | 0 | 0 | 0 / 1 / 2 |
-| **Total (34)** | **31** | **3** | **0** | 12 / 14 / 8 |
+| **Total (34)** | **28** | **6** | **0** | 12 / 14 / 8 |
 
 ### Previously blocking, now resolved
 
 | ID | Was | Now |
 |---|---|---|
-| REQ-Q1 | The project did not build | Lint, 105 tests and the production build all pass; CI enforces them on Node 20 and 22 |
+| REQ-Q1 | The project did not build | Lint, 216 tests and the production build all pass; CI enforces them on Node 20 and 22 |
 | REQ-G1 | Sign-in could never succeed (fabricated Client ID) | Placeholder removed, actionable errors, build-time ID supported, and a route that needs no sign-in |
-| REQ-U2 | Personal photos required developer-level Google Cloud setup | Shared album link is the default route: paste one link, nothing to configure |
+| REQ-U2 | Personal photos required developer-level Google Cloud setup | Scan the TV's QR and send an album link from the phone; nothing to configure |
 | REQ-U1 | A TV remote could not select an album | Explicit D-pad grid navigation plus dialog focus containment |
 | REQ-S3 | One failed video froze the slideshow indefinitely | Muted autoplay, error/stall handling, 15s start watchdog, 10-minute ceiling |
 

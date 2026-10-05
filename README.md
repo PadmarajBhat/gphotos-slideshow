@@ -7,44 +7,60 @@
 [![Vite](https://img.shields.io/badge/Vite-6-purple.svg)](https://vitejs.dev/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
 
-**GPicShow** turns a Smart TV (Sony Android TV / Google TV, Samsung, LG, Fire TV) or any connected display into an ambient digital photo frame powered by your **Google Photos** library.
+**GPicShow** turns a Smart TV (Sony Android TV / Google TV, Samsung, LG, Fire TV), a tablet, a phone or any connected display into an ambient photo frame for your **Google Photos** albums, videos included.
 
-Built for **elderly ease-of-use**, **10-foot TV ergonomics**, and keeping your photos on your own hardware.
+Built for **elderly ease-of-use**, **10-foot TV ergonomics**, and nothing to install or sign in to.
+
+**Use it now:** open **https://padmarajbhat.github.io/gphotos-slideshow/** on the TV.
 
 ---
 
-## ⚠️ Read this first: how Google Photos access works now
+## 📲 How it works
 
-On **31 March 2025 Google removed** the `photoslibrary.readonly` scope. Any app using it now receives `403 PERMISSION_DENIED`. Third-party apps can no longer list a user's albums with the Library API, and **no OAuth configuration can bring that back**.
+1. **On the TV**, open the site. The home screen shows a QR code.
+2. **On your phone**, in Google Photos, open an album and tap **Share → Create link**, then copy the link.
+3. **Scan the QR** on the TV, paste the link and tap **Send to TV**.
+4. The TV loads **the whole album, photos and videos**, and starts the slideshow within a few seconds.
 
-GPicShow therefore uses the **[Google Photos Ambient API](https://developers.google.com/photos/ambient)**, which Google built specifically for shared ambient displays such as TVs and photo frames. It returns photos, videos and motion photos, and it is paginated, so large libraries arrive complete.
+Next time, the album is waiting under **Continue** at the top of the home screen. One press of OK resumes it.
 
-The Ambient API requires an OAuth client of type *TVs and Limited Input devices*, which comes with a **client secret**. A browser cannot hold a secret, so GPicShow ships a **small helper process** that runs on the same machine as the display. It holds the credential, performs the device-code pairing, and talks to Google. Your photos still stream straight from Google to the screen.
+No account, no app to install, and nothing to type on the TV. On a phone or tablet, tap the QR instead of scanning it.
+
+### Why shared links?
+
+Google has closed the other doors for independent apps:
+
+- On **31 March 2025** Google removed the `photoslibrary.readonly` scope, so apps can no longer list your albums.
+- The **Picker API** can't be used from a TV: Google's device sign-in flow rejects its scope, and picked items expire.
+- The **[Ambient API](https://developers.google.com/photos/ambient)**, built for photo frames, is open only to members of Google's partner program.
+
+A shared-album link is the one route that works everywhere and loads a complete album. The Ambient integration is still in the code, switched off behind `VITE_AMBIENT_API`, for the day the app is accepted.
 
 | Source | Setup | Gets | Videos play |
 |---|---|---|---|
-| **Google Photos (Ambient API)** | Pair once from your phone | Everything you select, complete | ✅ Yes |
-| **Shared album link** | Paste a link, nothing to configure | First few hundred photos only | ❌ Thumbnails only |
-| **Demo albums** | None | Curated samples | ✅ Yes |
+| **Shared album link** | Send from your phone | The whole album | ✅ Yes |
+| **Demo** | None | Curated samples | ✅ Yes |
+| **Google Photos (Ambient API)** | Partner program only, off by default | Albums you choose | ✅ Yes |
 
 ---
 
 ## 🌟 Features
 
-- 📺 **Full D-pad navigation** — arrow keys move between albums, OK opens, Back exits. Large type, high-contrast focus rings.
-- 📱 **Pair from your phone** — the TV shows a QR code; you approve and pick albums on your phone. Nothing to type on the TV.
-- 🖼️ **Full-screen with blur backdrop** — photos that don't match the screen shape are letterboxed against a blurred, downscaled copy of themselves.
-- 🎬 **Videos play to completion** before advancing — with error, stall and timeout handling so a broken clip skips instead of freezing the frame.
-- 🔀 **Cinematic transitions** — Ken Burns, crossfade, cinematic push, soft scale, or random. Slide duration 5–60s.
-- 🕒 **Ambient overlays** — regional clock (top-left), photo details (bottom-left), live weather (bottom-right). Each can be switched off.
-- ⚡ **Runs unattended** — tokens refresh silently, and media URLs are renewed inside Google's 60-minute expiry window.
-- 💾 **Preferences persist** across reboots.
+- 📺 **Full D-pad navigation**: arrow keys move, OK opens, Back exits. Large type, high-contrast focus rings.
+- 📱 **Send from your phone**: scan, paste, send. The TV picks it up by itself.
+- ⏯️ **Continue where you left off**: the last three albums sit at the top of the home screen, the latest already focused.
+- 🖼️ **Full-screen with blur backdrop**: photos that don't match the screen shape are letterboxed against a blurred copy of themselves.
+- 🎬 **Videos play to completion** before advancing, with error, stall and timeout handling so a broken clip skips instead of freezing the frame.
+- 🔀 **Cinematic transitions**: Ken Burns, crossfade, cinematic push, soft scale, or random. Slide duration 5–60s.
+- 🕒 **Ambient overlays**: regional clock (top-left), photo details (bottom-left), live weather (bottom-right). Each can be switched off. On phones the layout tightens so nothing overlaps.
+- 🔆 **Keeps the screen on** during a slideshow on phones and tablets.
+- 🛟 **Copes with bad networks**: when photos stop loading, it slows down and retries instead of racing through the album.
 
 ---
 
 ## 🎮 TV Remote & Keyboard
 
-### Album screen
+### Home screen
 | Key | Action |
 |---|---|
 | **Arrow keys** | Move between albums |
@@ -57,69 +73,53 @@ The Ambient API requires an OAuth client of type *TVs and Limited Input devices*
 | **→** / Next Track | Next photo or video |
 | **←** / Prev Track | Previous |
 | **Space** / OK / Play-Pause | Pause / resume (pauses video too) |
-| **Escape** / Back / Backspace | Return to albums |
+| **Escape** / Back / Backspace | Return to the home screen |
 | **F** | Fullscreen |
 | **H** | Show / hide overlays |
 
 ---
 
-## 🚀 Getting Started
+## 📱 Running on a TV, tablet or phone
+
+- **Android TV / Google TV** (e.g. Sony Bravia): install a browser such as *Open Browser* or *Puffin TV* from the Play Store, open the address, and use the remote's D-pad.
+- **Phone or tablet**: open the site and choose **Add to Home Screen**. It launches full-screen like an app. Prop it on a stand: the screen stays on while the slideshow plays.
+- **Cast**: open the site on a laptop and cast the tab to the TV.
+
+---
+
+## 🏗️ Architecture
+
+| Part | Where | Job |
+|---|---|---|
+| **Web app** (`src/`) | GitHub Pages | Everything you see. Photos and videos stream straight from Google to the screen. |
+| **Photo helper** (`server/`) | Google Cloud Run, `us-central1` | Reads a shared album from Google (a browser can't, because of CORS), and passes album links from phone to TV. |
+| **Database** | Firestore | One-time send codes and links in transit, each with a short expiry. |
+
+The helper is dependency-free Node. It never downloads or stores a photo; it returns the album's list of items and the screen loads each one from Google.
+
+### Security model
+
+- **Per-screen secret.** Each screen generates 32 random bytes on first run and sends them as `X-Frame-Session`. The server files records under a SHA-256 hash of that value, never the value itself.
+- **Send codes** are 8 characters from a 31-symbol alphabet (about 8.5 × 10¹¹ combinations), valid for 15 minutes, single use. Sending is rate-limited to 10 tries per 10 minutes per address, so guessing a code is infeasible.
+- **Links in transit** are encrypted with AES-256-GCM (key in Secret Manager), handed over once, and discarded after an hour if no screen collects them.
+- **Fetches are locked to Google**: only Google Photos hosts over HTTPS, with every redirect re-checked, so the helper can't be used to reach anything else.
+- **CORS** admits only the published site (and localhost for development).
+
+---
+
+## 🚀 Development
 
 ### Prerequisites
 - Node.js 18+ (CI covers 20 and 22)
-- A modern browser
 
-### Install
+### Run locally
 ```bash
 git clone https://github.com/PadmarajBhat/gphotos-slideshow.git
 cd gphotos-slideshow
 npm install
 ```
 
-Or skip installing and use the public version at **https://padmarajbhat.github.io/gphotos-slideshow/**: demo albums and shared-album links, on any TV or phone.
-
-### Try it immediately, no setup
-```bash
-npm run dev
-```
-Open `http://localhost:3000` and select **Try the demo**. Demo albums and shared-album links work without the helper.
-
-### Build for production
-```bash
-npm run build
-```
-
----
-
-## 🔑 Connecting your own Google Photos
-
-### 1. Create the Google credentials
-
-1. Open the [Google Cloud Console](https://console.cloud.google.com/) and create a project.
-2. **APIs & Services → Library** → enable the **Google Photos Ambient API**.
-3. **APIs & Services → OAuth consent screen** → fill in the app name and support email, and add your account under **Test users**.
-4. **APIs & Services → Credentials → Create Credentials → OAuth client ID**.
-   Application type: **TVs and Limited Input devices**.
-5. Copy the **Client ID** and **Client secret**.
-
-### 2. Configure the helper
-
-```bash
-cp .env.example .env
-```
-
-Then edit `.env`:
-
-```
-GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your-client-secret
-```
-
-`.env` is gitignored. The secret never reaches the browser.
-
-### 3. Run it
-
-**Development** — two terminals:
+Two terminals:
 
 ```bash
 npm run helper
@@ -129,58 +129,60 @@ npm run helper
 npm run dev
 ```
 
-Vite proxies `/api/ambient` to the helper on port 4000.
+Open `http://localhost:3000`. Vite proxies the send routes to the helper on port 4000. Locally the helper stores its data under `server/.data/` (gitignored) and generates its own encryption key there.
 
-**Production / on the TV box** — one process serves the built app and the API together:
-
+### Commands
 ```bash
-npm run build
-npm start
+npm run dev       # Vite dev server on :3000
+npm run helper    # photo helper on :4000
+npm run lint      # ESLint
+npm test          # Vitest
+npm run build     # type check + production bundle
+npm run verify    # lint + test + build
 ```
 
-Then open `http://localhost:4000`, or the machine's LAN address from the TV.
+`tools/spec_drift_check.py` fails when `src/` changes without a matching update under `specs/`. CI runs it on pull requests.
 
-### 4. Pair the frame
-
-There's nothing to click. The home screen shows a QR code as soon as it opens.
-
-1. Scan the QR code with your phone and enter the short code shown on the TV.
-2. A second QR code appears. Scan it to open this frame's settings in the Google Photos app, and choose which albums it may show.
-3. The screen updates by itself, and the QR is replaced by **Your Google Photos**.
-
-To disconnect this frame, open **Settings** (the gear, top right) and choose **Disconnect Google Photos**.
+The dev server binds to all interfaces so a TV on the same Wi-Fi can reach it. Don't expose it to an untrusted network.
 
 ---
 
 ## 🌍 Deployment
 
-GPicShow deploys in two parts, on purpose.
+### Web app: GitHub Pages
 
-| | Public site (GitHub Pages) | Home device |
-|---|---|---|
-| Reachable from | Anywhere, any TV or phone | Devices on your home Wi-Fi |
-| Demo + shared-album links | ✅ | ✅ |
-| Your Google Photos + videos | ❌ | ✅ |
-| Cost | Free | Free on hardware you own |
+Wired up in `.github/workflows/deploy-pages.yml`. One-time setup: **Settings → Pages → Build and deployment → Source: GitHub Actions**. Every push to `master` then tests, builds and publishes. The workflow sets the base path from the repository name and points the app at the helper through `VITE_HELPER_URL`.
 
-### ⚠️ Never expose the helper to the internet
+### Photo helper: Cloud Run
 
-The helper has **no login**. It is built for one frame and one Google account. Hosted on a public URL, **anyone who finds that URL would see your photos**. Keep it on your home network. If you want it reachable while away, put it behind something that authenticates first, such as [Tailscale](https://tailscale.com/), rather than opening a port.
+Cloud Run's free tier covers a personal frame comfortably, but only in `us-central1`, `us-east1` and `us-west1`.
 
-### Public site — GitHub Pages
+One-time setup, in a project of your own:
 
-Already wired up in `.github/workflows/deploy-pages.yml`. One-time setup:
+```bash
+gcloud services enable run.googleapis.com firestore.googleapis.com secretmanager.googleapis.com cloudbuild.googleapis.com
+gcloud firestore databases create --location=us-central1
+```
 
-1. In your repository: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-2. Push to `master`.
+1. Create a service account with **Cloud Datastore User** and **Secret Manager Secret Accessor**, and nothing else.
+2. Store a 32-byte key as a secret. Generate it with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`.
+3. Turn on automatic deletion for each collection the helper writes:
 
-Every push to `master` runs the tests, builds, and publishes to **https://padmarajbhat.github.io/gphotos-slideshow/**. The workflow sets the base path from the repository name automatically, so renaming the repo just works.
+```bash
+for g in sendCodes inboxes sessions media; do gcloud firestore fields ttls update expireAt --collection-group=$g --enable-ttl --async; done
+```
 
-On the public site, shared-album links are under **Settings → Play a shared album link**.
+Deploy (only the `Dockerfile` and `server/` are uploaded, see `.gcloudignore`):
 
-### Home device
+```bash
+gcloud run deploy photo-frame-helper --source . --region us-central1 --allow-unauthenticated --max-instances 1 --service-account <helper-account> --set-env-vars "ALLOWED_ORIGINS=https://<you>.github.io,FIRESTORE_PROJECT=<project>" --set-secrets "TOKEN_ENCRYPTION_KEY=<key-secret>:latest"
+```
 
-Any always-on machine on your Wi-Fi works: a Raspberry Pi, an old laptop, or a mini PC behind the TV.
+`--max-instances 1` keeps the in-memory rate limiter accurate.
+
+### Or self-host on a home device
+
+Any always-on machine works: a Raspberry Pi, an old laptop, a mini PC behind the TV. One process serves the built app and the helper together:
 
 ```bash
 npm ci
@@ -188,93 +190,41 @@ npm run build
 npm start
 ```
 
-Then on the TV or phone, open `http://<that-machine's-LAN-IP>:4000`. Find the IP with `ipconfig` (Windows) or `hostname -I` (Linux).
-
-**Keep it running across reboots.** A photo frame that stops after a power cut isn't much of a frame:
-
-<details>
-<summary><b>Raspberry Pi / Linux</b> — systemd service</summary>
-
-Create `/etc/systemd/system/gpicshow.service`:
-
-```ini
-[Unit]
-Description=GPicShow
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-WorkingDirectory=/home/pi/gphotos-slideshow
-ExecStart=/usr/bin/npm start
-Restart=always
-User=pi
-
-[Install]
-WantedBy=multi-user.target
-```
-
-```bash
-sudo systemctl enable --now gpicshow
-```
-</details>
-
-<details>
-<summary><b>Windows</b> — start on login with Task Scheduler</summary>
-
-1. Open **Task Scheduler → Create Task**.
-2. **Triggers → New → At log on**.
-3. **Actions → New → Start a program**: `npm`, arguments `start`, start in: your GPicShow folder.
-4. **Settings**: tick *If the task fails, restart every 1 minute*.
-</details>
-
-## 📱 Running on a TV or phone
-
-- **Phone or tablet** — open the site and choose **Add to Home Screen**. It launches full-screen like an app.
-- **Android TV / Google TV** (e.g. Sony Bravia) — install a browser such as *Open Browser* or *Puffin TV* from the Play Store, open the address, and use the remote's D-pad.
-- **Cast** — open the site on a laptop and cast the tab to the TV.
-- **Kiosk** — a Raspberry Pi on HDMI running both the helper and a full-screen browser is the most reliable frame of all.
+Open `http://<that-machine's-LAN-IP>:4000` on the TV. To keep it running across reboots, run it as a systemd service on Linux or a Task Scheduler task on Windows.
 
 ---
 
 ## 🛡️ Privacy: what leaves your device
 
-GPicShow has no cloud service. The helper runs on your hardware. Photos stream from Google to your screen and are never stored.
+Photos and videos stream from Google to your screen and are never stored. The full policy is at [privacy.html](https://padmarajbhat.github.io/gphotos-slideshow/privacy.html).
 
 | Destination | When | What it receives | How to avoid it |
 |---|---|---|---|
-| `oauth2.googleapis.com` | Pairing and token refresh | Your client ID/secret and refresh token | Don't use the Google Photos source |
-| `photosambient.googleapis.com` | Google Photos source active | Your access token; returns your selected media | Don't use the Google Photos source |
-| `lh3.googleusercontent.com` | Always | Requests for your own photo and video files | Unavoidable — this is where the media lives |
+| `lh3.googleusercontent.com` | Always | Requests for the album's photo and video files | Unavoidable: this is where the media lives |
+| Photo helper (Cloud Run) | Sending or playing a shared album | The album link, the screen's random id, the send code. The link is held encrypted only until the screen collects it | Self-host the helper |
 | `api.open-meteo.com` | Weather overlay on | Approximate latitude/longitude. No API key | Turn off **Weather** in Settings |
 | `freeipapi.com` | Weather on **and** browser geolocation unavailable | Your public IP, to estimate the city | Turn off **Weather**, or allow precise geolocation |
 | `nominatim.openstreetmap.org` | A photo carries GPS coordinates | Those coordinates, to resolve a place name | Turn off **Photo info** in Settings |
-| `api.allorigins.win` | Shared-album link on a **hosted** build | The shared album URL | Run locally, where the dev proxy is used instead |
 
-**Never stored:** photos, videos, thumbnails, access tokens. No service worker, no image cache.
+**Stored on the screen** (`localStorage`): slideshow preferences (`gpicshow_config`), the last three albums played including their shared links (`gpicshow_recent`), and the screen's random id (`gpicshow_session`). Clear the albums under **Settings → Clear recently played**.
 
-**Stored locally:**
-- `localStorage` — your slideshow preferences (`gpicshow_config`), and the last three albums played on that screen (`gpicshow_recent`), including any shared-album link, so they can be resumed. Clear them under **Settings → Clear recently played**.
-- `server/.tokens.json` — the Google **refresh token** and this frame's device id, written with `0600` permissions so the frame survives a reboot without re-pairing. Gitignored. Delete the file, or use **Settings → Disconnect Google Photos**, to remove it.
+**Stored on the server**: send codes (15 minutes) and links waiting to be collected (at most an hour), both encrypted where they hold a link, and deleted from Firestore automatically.
+
+Anyone with a shared-album link can view that album. Use an album made for the frame, and switch link sharing off in Google Photos to revoke it at any time.
 
 ---
 
-## 🧪 Development
+<details>
+<summary><b>Google Photos Ambient API</b>: for partner-program members</summary>
 
-```bash
-npm run dev       # Vite dev server on :3000
-npm run helper    # Ambient helper on :4000
-npm run lint      # ESLint
-npm test          # Vitest (102 tests)
-npm run build     # type check + production bundle
-npm run verify    # lint + test + build
-```
+The Ambient API pairs a screen with a Google account through the device-code flow and returns the albums the user picks for it in the Google Photos app. It needs an OAuth client of type *TVs and Limited Input devices*, whose secret only the helper holds.
 
-`tools/spec_drift_check.py` fails when `src/` changes without a matching update under `specs/`. CI runs it on pull requests.
+1. In the Google Cloud Console, enable the **Google Photos Ambient API** and create the OAuth client.
+2. Put the credentials in `.env` (see `.env.example`) locally, or as `GOOGLE_CLIENT_ID` and a `GOOGLE_CLIENT_SECRET` secret on Cloud Run.
+3. Build the web app with `VITE_AMBIENT_API=true`. The home screen's right-hand panel then offers pairing instead of sending.
 
-### Notes
-
-- The dev server binds to all interfaces so a TV on the same Wi-Fi can reach it. Its shared-album proxy is restricted to Google Photos hostnames over HTTPS with per-hop redirect revalidation. Don't widen that allowlist or expose the dev server to an untrusted network.
-- Google limits the Ambient API to **240 requests per device per day**. The helper refreshes the full media list every 50 minutes, which keeps a 600-item library at roughly 173 requests/day while staying inside the 60-minute `baseUrl` expiry.
+Tokens are stored encrypted per screen and removed by **Settings → Disconnect Google Photos**. Google limits the API to 240 requests per device per day; the helper refreshes the media list every 50 minutes, inside the 60-minute expiry of Google's media links.
+</details>
 
 ---
 

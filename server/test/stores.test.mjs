@@ -71,6 +71,16 @@ describe('Firestore store (Cloud Run)', () => {
     expect(days).toBeLessThan(90.1);
   });
 
+  it('lets short-lived records set their own, earlier expiry', async () => {
+    const { store, fetchImpl } = fakeFirestore();
+    const at = Date.parse('2026-10-05T12:15:00Z');
+    await store.putDoc('sendCodes', 'ABCDEFGH', { sessionId: 's' }, { expireAt: at });
+
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toMatch(/\/documents\/sendCodes\/ABCDEFGH$/);
+    expect(JSON.parse(init.body).fields.expireAt.timestampValue).toBe('2026-10-05T12:15:00.000Z');
+  });
+
   it('treats a missing document as no session', async () => {
     const { store } = fakeFirestore();
     expect(await store.getSession('missing')).toBeNull();

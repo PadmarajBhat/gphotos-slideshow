@@ -63,8 +63,9 @@ export function createFirestoreStore({ projectId, fetchImpl = fetch, tokenProvid
     return raw ? JSON.parse(raw) : null;
   }
 
-  async function write(collection, id, value) {
-    const expireAt = new Date(Date.now() + RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  /** `expireAtMs` lets short-lived records (send codes) go sooner than the default. */
+  async function write(collection, id, value, expireAtMs) {
+    const expireAt = new Date(expireAtMs ?? Date.now() + RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
     await call('PATCH', await docUrl(collection, id), {
       fields: {
         data: { stringValue: JSON.stringify(value) },
@@ -82,6 +83,9 @@ export function createFirestoreStore({ projectId, fetchImpl = fetch, tokenProvid
     getSession: (id) => read('sessions', id),
     putSession: (id, value) => write('sessions', id, value),
     deleteSession: (id) => remove('sessions', id),
+    getDoc: (collection, id) => read(collection, id),
+    putDoc: (collection, id, value, { expireAt } = {}) => write(collection, id, value, expireAt),
+    deleteDoc: (collection, id) => remove(collection, id),
 
     async getMedia(id) {
       const head = await read('media', id);

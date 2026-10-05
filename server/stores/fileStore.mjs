@@ -38,5 +38,8 @@ export function createFileStore(directory) {
     getMedia: (id) => read('media', id),
     putMedia: (id, value) => write('media', id, value),
     deleteMedia: (id) => remove('media', id),
+    getDoc: (kind, id) => read(kind, id),
+    putDoc: (kind, id, value) => write(kind, id, value),
+    deleteDoc: (kind, id) => remove(kind, id),
   };
 }

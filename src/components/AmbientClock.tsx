@@ -12,14 +12,14 @@ export const AmbientClock: React.FC<AmbientClockProps> = ({ format12h = true }) 
   return (
     <div
       aria-label="Current Date and Time"
-      className="ambient-glass rounded-2xl px-6 py-4 flex flex-col gap-1 select-none pointer-events-none transition-all duration-300 shadow-2xl"
+      className="ambient-glass rounded-2xl px-4 py-3 sm:px-6 sm:py-4 flex flex-col gap-1 select-none pointer-events-none transition-all duration-300 shadow-2xl"
     >
       <div className="flex items-baseline gap-2">
-        <span className="text-4xl lg:text-5xl font-extrabold tracking-tight text-white drop-shadow-md">
+        <span className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white drop-shadow-md">
           {clock.timeString}
         </span>
         {clock.periodString && (
-          <span className="text-xl lg:text-2xl font-bold text-amber-300 drop-shadow">
+          <span className="text-lg sm:text-xl lg:text-2xl font-bold text-amber-300 drop-shadow">
             {clock.periodString}
           </span>
         )}

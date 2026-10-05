@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import {
+  AMBIENT_ENABLED,
   AmbientStatus,
   OFFLINE_STATUS,
   disconnectAmbient,
@@ -26,6 +27,7 @@ export function useAmbientPhotos() {
     queryKey: ['ambientStatus'],
     queryFn: fetchAmbientStatus,
     initialData: OFFLINE_STATUS,
+    enabled: AMBIENT_ENABLED,
     refetchInterval: (query) => {
       const phase = query.state.data?.phase;
       // Poll quickly through every setup step, including 'unconfigured', so

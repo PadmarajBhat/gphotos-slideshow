@@ -1,23 +1,19 @@
 import React, { useEffect, useRef } from 'react';
 import { Settings, Play, Images, X } from 'lucide-react';
-import { AmbientStatus } from '../api/ambient';
 import { RecentAlbum } from '../utils/recentAlbums';
 import { useSpatialNavigation } from '../hooks/useSpatialNavigation';
-import { PhotosPanel } from './PhotosPanel';
 
 interface HomeScreenProps {
   recent: RecentAlbum[];
   demoCover: string;
   demoCount: number;
-  ambientStatus: AmbientStatus;
-  googleCount: number;
+  /** Right-hand panel: the send-from-phone QR, or Google Photos pairing. */
+  rightPanel: React.ReactNode;
   googleCover?: string;
   notice?: string | null;
   onDismissNotice: () => void;
   onPlayDemo: () => void;
-  onPlayGoogle: () => void;
   onPlayRecent: (entry: RecentAlbum) => void;
-  onConnect: () => Promise<unknown>;
   onOpenSettings: () => void;
 }
 
@@ -56,15 +52,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   recent,
   demoCover,
   demoCount,
-  ambientStatus,
-  googleCount,
+  rightPanel,
   googleCover,
   notice,
   onDismissNotice,
   onPlayDemo,
-  onPlayGoogle,
   onPlayRecent,
-  onConnect,
   onOpenSettings,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -152,13 +145,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             </div>
           </button>
 
-          <PhotosPanel
-            status={ambientStatus}
-            itemCount={googleCount}
-            cover={googleCover}
-            onConnect={onConnect}
-            onPlay={onPlayGoogle}
-          />
+          {rightPanel}
         </section>
 
         {/* Google's OAuth verification requires the homepage to link these. */}
