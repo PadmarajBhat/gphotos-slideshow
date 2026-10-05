@@ -1,6 +1,6 @@
 import { SlideshowConfig, TransitionType } from '../types';
 
-const CONFIG_STORAGE_KEY = 'luminaframe_config';
+const CONFIG_STORAGE_KEY = 'gpicshow_config';
 
 export const DEFAULT_CONFIG: SlideshowConfig = {
   durationSeconds: 10,
@@ -22,7 +22,7 @@ const VALID_TRANSITIONS: TransitionType[] = [
 ];
 
 /**
- * Preferences are the only thing LuminaFrame persists. A corrupt or
+ * Preferences are the only thing GPicShow persists. A corrupt or
  * hand-edited blob must never stop the frame from starting, so every field
  * falls back to its default independently.
  */
@@ -51,6 +51,30 @@ export function loadConfig(): SlideshowConfig {
     return sanitizeConfig(JSON.parse(stored));
   } catch {
     return DEFAULT_CONFIG;
+  }
+}
+
+/** Keys written before the project was renamed from LuminaFrame. */
+const LEGACY_KEYS: Record<string, string> = {
+  luminaframe_config: 'gpicshow_config',
+  luminaframe_recent: 'gpicshow_recent',
+  luminaframe_session: 'gpicshow_session',
+};
+
+/**
+ * Carries data saved under the old name across, so an updated TV keeps its
+ * preferences, recent albums and Google pairing. Run once before rendering.
+ */
+export function migrateLegacyStorage(): void {
+  try {
+    for (const [oldKey, newKey] of Object.entries(LEGACY_KEYS)) {
+      const value = localStorage.getItem(oldKey);
+      if (value === null) continue;
+      if (localStorage.getItem(newKey) === null) localStorage.setItem(newKey, value);
+      localStorage.removeItem(oldKey);
+    }
+  } catch {
+    // Storage unavailable: there is nothing to carry over.
   }
 }
 

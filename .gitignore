@@ -36,6 +36,6 @@ credentials.json
 __pycache__/
 *.pyc
 
-# LuminaFrame helper credentials
+# GPicShow helper credentials
 server/.tokens.json
 server/.data/

@@ -2,23 +2,23 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "luminaframe-dev",
+      "name": "gpicshow-dev",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3000,
       "autoPort": false
     },
     {
-      "name": "luminaframe-helper",
+      "name": "gpicshow-helper",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "helper"],
       "port": 4000,
       "autoPort": false
     },
     {
-      "name": "luminaframe-pages-preview",
+      "name": "gpicshow-pages-preview",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["vite", "preview", "--base", "/luminaframe/", "--port", "4173", "--strictPort"],
+      "runtimeArgs": ["vite", "preview", "--base", "/gpicshow/", "--port", "4173", "--strictPort"],
       "port": 4173,
       "url": "http://localhost:4173"
     }

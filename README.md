@@ -1,4 +1,4 @@
-# LuminaFrame 🖼️✨
+# GPicShow 🖼️✨
 > **An Ambient Google Photos Slideshow for Smart TVs & Screens**
 
 [![CI](https://github.com/PadmarajBhat/gphotos-slideshow/actions/workflows/ci.yml/badge.svg)](https://github.com/PadmarajBhat/gphotos-slideshow/actions/workflows/ci.yml)
@@ -7,7 +7,7 @@
 [![Vite](https://img.shields.io/badge/Vite-6-purple.svg)](https://vitejs.dev/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
 
-**LuminaFrame** turns a Smart TV (Sony Android TV / Google TV, Samsung, LG, Fire TV) or any connected display into an ambient digital photo frame powered by your **Google Photos** library.
+**GPicShow** turns a Smart TV (Sony Android TV / Google TV, Samsung, LG, Fire TV) or any connected display into an ambient digital photo frame powered by your **Google Photos** library.
 
 Built for **elderly ease-of-use**, **10-foot TV ergonomics**, and keeping your photos on your own hardware.
 
@@ -17,9 +17,9 @@ Built for **elderly ease-of-use**, **10-foot TV ergonomics**, and keeping your p
 
 On **31 March 2025 Google removed** the `photoslibrary.readonly` scope. Any app using it now receives `403 PERMISSION_DENIED`. Third-party apps can no longer list a user's albums with the Library API, and **no OAuth configuration can bring that back**.
 
-LuminaFrame therefore uses the **[Google Photos Ambient API](https://developers.google.com/photos/ambient)**, which Google built specifically for shared ambient displays such as TVs and photo frames. It returns photos, videos and motion photos, and it is paginated, so large libraries arrive complete.
+GPicShow therefore uses the **[Google Photos Ambient API](https://developers.google.com/photos/ambient)**, which Google built specifically for shared ambient displays such as TVs and photo frames. It returns photos, videos and motion photos, and it is paginated, so large libraries arrive complete.
 
-The Ambient API requires an OAuth client of type *TVs and Limited Input devices*, which comes with a **client secret**. A browser cannot hold a secret, so LuminaFrame ships a **small helper process** that runs on the same machine as the display. It holds the credential, performs the device-code pairing, and talks to Google. Your photos still stream straight from Google to the screen.
+The Ambient API requires an OAuth client of type *TVs and Limited Input devices*, which comes with a **client secret**. A browser cannot hold a secret, so GPicShow ships a **small helper process** that runs on the same machine as the display. It holds the credential, performs the device-code pairing, and talks to Google. Your photos still stream straight from Google to the screen.
 
 | Source | Setup | Gets | Videos play |
 |---|---|---|---|
@@ -154,7 +154,7 @@ To disconnect this frame, open **Settings** (the gear, top right) and choose **D
 
 ## 🌍 Deployment
 
-LuminaFrame deploys in two parts, on purpose.
+GPicShow deploys in two parts, on purpose.
 
 | | Public site (GitHub Pages) | Home device |
 |---|---|---|
@@ -195,16 +195,16 @@ Then on the TV or phone, open `http://<that-machine's-LAN-IP>:4000`. Find the IP
 <details>
 <summary><b>Raspberry Pi / Linux</b> — systemd service</summary>
 
-Create `/etc/systemd/system/luminaframe.service`:
+Create `/etc/systemd/system/gpicshow.service`:
 
 ```ini
 [Unit]
-Description=LuminaFrame
+Description=GPicShow
 After=network-online.target
 Wants=network-online.target
 
 [Service]
-WorkingDirectory=/home/pi/luminaframe
+WorkingDirectory=/home/pi/gphotos-slideshow
 ExecStart=/usr/bin/npm start
 Restart=always
 User=pi
@@ -214,7 +214,7 @@ WantedBy=multi-user.target
 ```
 
 ```bash
-sudo systemctl enable --now luminaframe
+sudo systemctl enable --now gpicshow
 ```
 </details>
 
@@ -223,7 +223,7 @@ sudo systemctl enable --now luminaframe
 
 1. Open **Task Scheduler → Create Task**.
 2. **Triggers → New → At log on**.
-3. **Actions → New → Start a program**: `npm`, arguments `start`, start in: your LuminaFrame folder.
+3. **Actions → New → Start a program**: `npm`, arguments `start`, start in: your GPicShow folder.
 4. **Settings**: tick *If the task fails, restart every 1 minute*.
 </details>
 
@@ -238,7 +238,7 @@ sudo systemctl enable --now luminaframe
 
 ## 🛡️ Privacy: what leaves your device
 
-LuminaFrame has no cloud service. The helper runs on your hardware. Photos stream from Google to your screen and are never stored.
+GPicShow has no cloud service. The helper runs on your hardware. Photos stream from Google to your screen and are never stored.
 
 | Destination | When | What it receives | How to avoid it |
 |---|---|---|---|
@@ -253,7 +253,7 @@ LuminaFrame has no cloud service. The helper runs on your hardware. Photos strea
 **Never stored:** photos, videos, thumbnails, access tokens. No service worker, no image cache.
 
 **Stored locally:**
-- `localStorage` — your slideshow preferences (`luminaframe_config`), and the last three albums played on that screen (`luminaframe_recent`), including any shared-album link, so they can be resumed. Clear them under **Settings → Clear recently played**.
+- `localStorage` — your slideshow preferences (`gpicshow_config`), and the last three albums played on that screen (`gpicshow_recent`), including any shared-album link, so they can be resumed. Clear them under **Settings → Clear recently played**.
 - `server/.tokens.json` — the Google **refresh token** and this frame's device id, written with `0600` permissions so the frame survives a reboot without re-pairing. Gitignored. Delete the file, or use **Settings → Disconnect Google Photos**, to remove it.
 
 ---

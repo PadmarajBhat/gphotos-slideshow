@@ -1,4 +1,4 @@
-# Tasks Breakdown: Ambient Google Photos TV Slideshow (LuminaFrame)
+# Tasks Breakdown: Ambient Google Photos TV Slideshow (GPicShow)
 
 ## Phase 1 — Initial build
 

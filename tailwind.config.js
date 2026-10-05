@@ -7,7 +7,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        lumina: {
+        gpicshow: {
           ink: '#020617',
           glow: '#FFB81C',
         },

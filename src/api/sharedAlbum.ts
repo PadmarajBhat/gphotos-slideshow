@@ -86,7 +86,7 @@ const RELAY_TIMEOUT_MS = 25000;
 export const RELAY_FAILED_MESSAGE =
   "This public site couldn't load that album. It has to read albums through a free public relay, " +
   'which often times out on large albums and is blocked on many workplace networks. ' +
-  'Shared links work reliably in the home version of LuminaFrame, which fetches albums directly from Google.';
+  'Shared links work reliably in the home version of GPicShow, which fetches albums directly from Google.';
 
 async function loadAlbumHtml(target: URL): Promise<string> {
   const encoded = encodeURIComponent(target.toString());

@@ -45,9 +45,9 @@ describe('Ambient helper client', () => {
   it('keeps the same secret across reloads, and replaces a corrupt one', () => {
     const first = getFrameSession();
     expect(getFrameSession()).toBe(first);
-    expect(localStorage.getItem('luminaframe_session')).toBe(first);
+    expect(localStorage.getItem('gpicshow_session')).toBe(first);
 
-    localStorage.setItem('luminaframe_session', 'tampered');
+    localStorage.setItem('gpicshow_session', 'tampered');
     const replaced = getFrameSession();
     expect(replaced).not.toBe('tampered');
     expect(replaced).toMatch(/^[A-Za-z0-9_-]{43}$/);

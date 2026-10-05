@@ -1,4 +1,4 @@
-# Verification Specification: Ambient Google Photos TV Slideshow (LuminaFrame)
+# Verification Specification: Ambient Google Photos TV Slideshow (GPicShow)
 
 Requirement IDs in the last column refer to [`requirement.md`](../requirement.md).
 

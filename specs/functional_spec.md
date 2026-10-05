@@ -1,4 +1,4 @@
-# Functional Specification: Ambient Google Photos TV Slideshow (LuminaFrame)
+# Functional Specification: Ambient Google Photos TV Slideshow (GPicShow)
 
 ## 1. Intent & Business Goals
 The goal of this open-source project is to provide a lightweight, zero-trust, elderly-friendly ambient photo & video slideshow web application designed primarily for TVs (Sony Android TV / Google TV, smart screens, desktop, tablet) connected to Google Photos.

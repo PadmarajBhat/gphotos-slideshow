@@ -49,7 +49,7 @@ export const OFFLINE_STATUS: AmbientStatus = {
   deviceName: 'Photo Frame',
 };
 
-const SESSION_KEY = 'luminaframe_session';
+const SESSION_KEY = 'gpicshow_session';
 const SESSION_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 
 function base64Url(bytes: Uint8Array): string {

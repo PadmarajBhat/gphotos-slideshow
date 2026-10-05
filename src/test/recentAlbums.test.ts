@@ -42,7 +42,7 @@ describe('Recently played albums', () => {
 
   it('ignores corrupt or tampered entries', () => {
     localStorage.setItem(
-      'luminaframe_recent',
+      'gpicshow_recent',
       JSON.stringify([
         { ...demo, playedAt: 1 },
         { key: 'x', kind: 'evil', title: 'x', count: 1, playedAt: 2 },
@@ -54,7 +54,7 @@ describe('Recently played albums', () => {
   });
 
   it('survives unparseable storage', () => {
-    localStorage.setItem('luminaframe_recent', '{not json');
+    localStorage.setItem('gpicshow_recent', '{not json');
     expect(loadRecentAlbums()).toEqual([]);
   });
 

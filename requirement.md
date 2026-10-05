@@ -1,4 +1,4 @@
-# LuminaFrame — Requirements Register
+# GPicShow — Requirements Register
 
 **Source of truth:** the original project request, reproduced verbatim in [Appendix A](#appendix-a--original-request-verbatim).
 **Purpose:** turn that request into numbered, individually testable requirements, and track implementation status against them.

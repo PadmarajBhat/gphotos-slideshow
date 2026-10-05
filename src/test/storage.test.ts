@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { DEFAULT_CONFIG, loadConfig, saveConfig, sanitizeConfig } from '../utils/storage';
+import {
+  DEFAULT_CONFIG,
+  loadConfig,
+  migrateLegacyStorage,
+  saveConfig,
+  sanitizeConfig,
+} from '../utils/storage';
 
 describe('Preference storage', () => {
   beforeEach(() => {
@@ -19,8 +25,30 @@ describe('Preference storage', () => {
     expect(loaded.clockFormat).toBe('24h');
   });
 
+  it('carries data saved under the old LuminaFrame keys across', () => {
+    localStorage.setItem('luminaframe_config', JSON.stringify({ ...DEFAULT_CONFIG, durationSeconds: 30 }));
+    localStorage.setItem('luminaframe_session', 'paired-secret');
+
+    migrateLegacyStorage();
+
+    expect(loadConfig().durationSeconds).toBe(30);
+    expect(localStorage.getItem('gpicshow_session')).toBe('paired-secret');
+    expect(localStorage.getItem('luminaframe_config')).toBeNull();
+    expect(localStorage.getItem('luminaframe_session')).toBeNull();
+  });
+
+  it('never overwrites data already saved under the new keys', () => {
+    localStorage.setItem('gpicshow_session', 'current');
+    localStorage.setItem('luminaframe_session', 'stale');
+
+    migrateLegacyStorage();
+
+    expect(localStorage.getItem('gpicshow_session')).toBe('current');
+    expect(localStorage.getItem('luminaframe_session')).toBeNull();
+  });
+
   it('falls back to defaults for a corrupt payload', () => {
-    localStorage.setItem('luminaframe_config', '{not json');
+    localStorage.setItem('gpicshow_config', '{not json');
     expect(loadConfig()).toEqual(DEFAULT_CONFIG);
   });
 

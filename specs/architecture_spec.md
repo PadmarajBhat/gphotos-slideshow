@@ -1,4 +1,4 @@
-# Architecture Specification: Ambient Google Photos TV Slideshow (LuminaFrame)
+# Architecture Specification: Ambient Google Photos TV Slideshow (GPicShow)
 
 ## 1. Stack Baselines & Architecture Overview
 - **Framework**: React 19 + TypeScript (strict mode) + Vite.
@@ -12,7 +12,7 @@
   - Google OAuth runs in the browser via Google Identity Services (`google.accounts.oauth2.initTokenClient`).
   - Google API queries are dispatched directly from the browser with the user's ephemeral bearer token.
   - Tokens and photo URLs are kept in memory only.
-  - **Persisted state is limited to two `localStorage` keys**: `luminaframe_config` (slideshow preferences) and `luminaframe_client_id` (OAuth Client ID). Neither contains media or credentials.
+  - **Persisted state is limited to two `localStorage` keys**: `gpicshow_config` (slideshow preferences) and `gpicshow_client_id` (OAuth Client ID). Neither contains media or credentials.
   - **Third-party services** are enumerated in the README "Privacy: what leaves your device" table, which is the authoritative list.
 
 ## 2. Component Boundaries & Directory Structure

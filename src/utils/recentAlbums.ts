@@ -18,7 +18,7 @@ export interface RecentAlbum {
   playedAt: number;
 }
 
-const STORAGE_KEY = 'luminaframe_recent';
+const STORAGE_KEY = 'gpicshow_recent';
 export const MAX_RECENT = 3;
 
 const KINDS: RecentKind[] = ['demo', 'shared', 'google'];
