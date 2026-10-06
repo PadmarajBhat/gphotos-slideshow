@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { findNextTarget } from './useSpatialNavigation';
 
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
@@ -12,6 +13,9 @@ function isTextEntry(target: EventTarget | null): boolean {
  * Keeps keyboard and D-pad focus inside a dialog, moves focus in on open and
  * restores it on close, and closes on Escape or the TV Back button. Without
  * this a remote user can tab onto the album grid hidden behind the dialog.
+ *
+ * A TV remote has arrow keys but no Tab, so the arrows move between the
+ * dialog's controls too, scrolling each into view.
  */
 export function useFocusTrap<T extends HTMLElement>(onClose: () => void) {
   const containerRef = useRef<T>(null);
@@ -30,6 +34,20 @@ export function useFocusTrap<T extends HTMLElement>(onClose: () => void) {
         event.preventDefault();
         event.stopPropagation();
         onClose();
+        return;
+      }
+
+      if (event.key.startsWith('Arrow')) {
+        // Left and Right belong to the caret while typing in a text box.
+        if (isTextEntry(event.target) && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) return;
+        const items = focusables();
+        const active = document.activeElement as HTMLElement | null;
+        const next = active && items.includes(active) ? findNextTarget(active, items, event.key) : items[0];
+        if (next) {
+          event.preventDefault();
+          next.focus();
+          next.scrollIntoView?.({ block: 'nearest' });
+        }
         return;
       }
 

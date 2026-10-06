@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { MediaFilter, SlideshowConfig, TransitionType } from '../types';
+import { MediaFilter, PlayOrder, SlideshowConfig, TransitionType } from '../types';
 import { useFocusTrap } from '../hooks/useFocusTrap';
-import { X, Clock, Shuffle, Thermometer, Sliders, Eye, Link2, Unplug, History, Film } from 'lucide-react';
+import { X, Clock, Shuffle, Thermometer, Sliders, Eye, Link2, Unplug, History, Film, ListOrdered } from 'lucide-react';
 
 interface SettingsModalProps {
   onClose: () => void;
@@ -18,6 +18,13 @@ const MEDIA_FILTERS: { id: MediaFilter; label: string }[] = [
   { id: 'all', label: 'Photos & videos' },
   { id: 'photos', label: 'Photos only' },
   { id: 'videos', label: 'Videos only' },
+];
+
+const PLAY_ORDERS: { id: PlayOrder; label: string }[] = [
+  { id: 'album', label: 'Album order' },
+  { id: 'newest', label: 'Newest first' },
+  { id: 'oldest', label: 'Oldest first' },
+  { id: 'shuffle', label: 'Shuffle' },
 ];
 
 const HUD_TOGGLES: { key: keyof SlideshowConfig; label: string }[] = [
@@ -57,9 +64,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     >
       <div
         ref={dialogRef}
-        className="w-full max-w-xl max-h-[90vh] overflow-y-auto bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col gap-5"
+        // Header and Save stay put while the options scroll between them, so
+        // Save is always on screen. On a TV the options use two columns,
+        // which fits them without scrolling at all.
+        className="w-full max-w-xl tv:max-w-4xl max-h-full flex flex-col bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden"
       >
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="shrink-0 flex items-center justify-between border-b border-slate-800 px-6 pt-5 pb-3">
           <div className="flex items-center gap-2 text-white">
             <Sliders className="w-5 h-5 text-amber-400" />
             <h2 id="settings-title" className="text-xl font-bold">Slideshow Settings</h2>
@@ -73,6 +83,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </button>
         </div>
 
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 flex flex-col gap-5 tv:grid tv:grid-cols-2 tv:gap-x-8 tv:gap-y-4 tv:content-start">
         {/* 1. Slide Duration */}
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
@@ -152,6 +163,32 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Order */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+            <ListOrdered className="w-3.5 h-3.5 text-amber-400" />
+            <span>Order</span>
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {PLAY_ORDERS.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                aria-pressed={localConfig.playOrder === o.id}
+                onClick={() => setLocalConfig((p) => ({ ...p, playOrder: o.id }))}
+                className={`py-1.5 px-2 text-xs font-semibold rounded-xl border transition text-center tv-focus-target ${
+                  localConfig.playOrder === o.id
+                    ? 'bg-amber-400 text-slate-950 border-amber-400'
+                    : 'bg-slate-800 text-slate-300 border-slate-700'
+                }`}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-[11px] text-slate-500">Each album carries on from where it was, even after the TV is switched off.</p>
         </div>
 
         {/* 3. Units & Formats */}
@@ -274,7 +311,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-800">
+        </div>
+
+        <div className="shrink-0 flex items-center justify-end gap-3 px-6 py-3 border-t border-slate-800">
           <button
             onClick={onClose}
             className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white tv-focus-target rounded-lg"

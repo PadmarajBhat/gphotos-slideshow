@@ -9,6 +9,8 @@ import {
   ArrowLeft,
   Eye,
   EyeOff,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 
 interface SlideshowControlsProps {
@@ -21,6 +23,8 @@ interface SlideshowControlsProps {
   isFullScreen: boolean;
   showHud: boolean;
   onToggleHud: () => void;
+  soundOn?: boolean;
+  onToggleSound?: () => void;
   currentIndex: number;
   totalItems: number;
 }
@@ -35,6 +39,8 @@ export const SlideshowControls: React.FC<SlideshowControlsProps> = ({
   isFullScreen,
   showHud,
   onToggleHud,
+  soundOn = true,
+  onToggleSound,
   currentIndex,
   totalItems,
 }) => {
@@ -98,6 +104,17 @@ export const SlideshowControls: React.FC<SlideshowControlsProps> = ({
       >
         {showHud ? <Eye className="w-5 h-5 text-amber-300" /> : <EyeOff className="w-5 h-5 text-slate-400" />}
       </button>
+
+      {onToggleSound && (
+        <button
+          onClick={onToggleSound}
+          title="Video sound (M key)"
+          className="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-full transition tv-focus-target"
+          aria-label={soundOn ? 'Turn video sound off' : 'Turn video sound on'}
+        >
+          {soundOn ? <Volume2 className="w-5 h-5 text-amber-300" /> : <VolumeX className="w-5 h-5 text-slate-400" />}
+        </button>
+      )}
 
       {/* iPhones have no page fullscreen; a button that does nothing just confuses. */}
       {canFullScreen && (

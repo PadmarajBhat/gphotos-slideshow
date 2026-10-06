@@ -53,6 +53,9 @@ export type TransitionType = 'random' | 'crossfade' | 'ken-burns' | 'slide-left'
 /** Which items an album plays: everything, or only its photos or videos. */
 export type MediaFilter = 'all' | 'photos' | 'videos';
 
+/** The album's own order, by date either way, or shuffled. Every order loops. */
+export type PlayOrder = 'album' | 'newest' | 'oldest' | 'shuffle';
+
 export interface SlideshowConfig {
   durationSeconds: number;
   transitionEffect: TransitionType;
@@ -64,6 +67,9 @@ export interface SlideshowConfig {
   /** Clock, weather and photo info fade out and back now and then, each on its own rhythm. */
   fadeOverlays: boolean;
   mediaFilter: MediaFilter;
+  playOrder: PlayOrder;
+  /** Videos play with sound (when the browser allows it). */
+  videoSound: boolean;
 }
 
 export interface WeatherData {

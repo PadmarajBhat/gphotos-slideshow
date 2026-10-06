@@ -278,6 +278,96 @@ describe('useSlideshow Hook', () => {
     });
   });
 
+  describe('play order, resuming and Back', () => {
+    const dated: MediaItem[] = Array.from({ length: 8 }, (_, i) => ({
+      ...mockItems[0],
+      id: `d${i}`,
+      baseUrl: `https://example.com/d${i}.jpg`,
+      mediaMetadata: { ...mockItems[0].mediaMetadata, creationTime: `202${i}-01-01T00:00:00Z` },
+    }));
+    type Opts = Partial<Parameters<typeof useSlideshow>[0]>;
+    const show = (opts: Opts = {}) =>
+      renderHook((props: Opts) =>
+        useSlideshow({ items: dated, durationSeconds: 5, transitionEffect: 'crossfade', ...opts, ...props })
+      );
+    const id = (r: { current: ReturnType<typeof useSlideshow> }) => r.current.currentItem?.id;
+    const next = (r: { current: ReturnType<typeof useSlideshow> }) => act(() => r.current.nextSlide());
+    const prev = (r: { current: ReturnType<typeof useSlideshow> }) => act(() => r.current.prevSlide());
+
+    it('starts with the newest, or the oldest', () => {
+      expect(id(show({ order: 'newest' }).result)).toBe('d7');
+      expect(id(show({ order: 'oldest' }).result)).toBe('d0');
+    });
+
+    it('shuffles through every item once, then reshuffles and keeps going', () => {
+      const { result } = show({ order: 'shuffle' });
+      const firstPass: string[] = [];
+      for (let i = 0; i < dated.length; i += 1) {
+        firstPass.push(id(result)!);
+        next(result);
+      }
+      expect(new Set(firstPass).size).toBe(dated.length);
+      expect(result.current.currentIndex).toBe(0);
+      expect(id(result)).not.toBe(firstPass[firstPass.length - 1]);
+    });
+
+    it('steps Back into the previous shuffled pass, then forward to where it was', () => {
+      const { result } = show({ order: 'shuffle' });
+      const shown: string[] = [];
+      for (let i = 0; i < dated.length; i += 1) {
+        shown.push(id(result)!);
+        next(result);
+      }
+      const startOfNewPass = id(result);
+
+      prev(result);
+      expect(id(result)).toBe(shown[shown.length - 1]);
+      prev(result);
+      expect(id(result)).toBe(shown[shown.length - 2]);
+
+      next(result);
+      next(result);
+      expect(id(result)).toBe(startOfNewPass);
+    });
+
+    it('carries on from the same photo after the TV is switched off', () => {
+      const first = show({ order: 'shuffle', albumKey: 'shared:k|all' });
+      next(first.result);
+      next(first.result);
+      next(first.result);
+      const onScreen = id(first.result);
+      const upNext: string[] = [];
+      next(first.result);
+      upNext.push(id(first.result)!);
+      prev(first.result);
+      first.unmount();
+
+      const again = show({ order: 'shuffle', albumKey: 'shared:k|all' });
+      expect(id(again.result)).toBe(onScreen);
+      // Same shuffled order as before, not a new one.
+      next(again.result);
+      expect(id(again.result)).toBe(upNext[0]);
+    });
+
+    it('resumes in album order too, and starts fresh when the order is changed', () => {
+      const first = show({ order: 'album', albumKey: 'demo|all' });
+      next(first.result);
+      next(first.result);
+      first.unmount();
+      expect(id(show({ order: 'album', albumKey: 'demo|all' }).result)).toBe('d2');
+      expect(id(show({ order: 'newest', albumKey: 'demo|all' }).result)).toBe('d7');
+    });
+
+    it('stays on the same photo when the album reloads with more photos', () => {
+      const { result, rerender } = show({ order: 'newest' });
+      next(result);
+      expect(id(result)).toBe('d6');
+      const added = { ...dated[0], id: 'brand-new', mediaMetadata: { ...dated[0].mediaMetadata, creationTime: '2030-01-01T00:00:00Z' } };
+      rerender({ items: [...dated, added] });
+      expect(id(result)).toBe('d6');
+    });
+  });
+
   it('recovers when the album is reloaded with fewer items', () => {
     const { result, rerender } = renderHook(
       ({ items }) => useSlideshow({ items, durationSeconds: 5, transitionEffect: 'crossfade' }),

@@ -74,6 +74,43 @@ describe('SettingsModal', () => {
     expect(onSaveConfig).toHaveBeenCalledWith(expect.objectContaining({ mediaFilter: 'videos' }));
   });
 
+  it('offers album order, newest or oldest first, and shuffle', () => {
+    const { onSaveConfig } = renderModal();
+    expect(screen.getByRole('button', { name: 'Album order' })).toHaveAttribute('aria-pressed', 'true');
+    for (const label of ['Newest first', 'Oldest first', 'Shuffle']) {
+      expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
+    }
+
+    fireEvent.click(screen.getByRole('button', { name: 'Shuffle' }));
+    fireEvent.click(screen.getByRole('button', { name: /Save Preferences/ }));
+
+    expect(onSaveConfig).toHaveBeenCalledWith(expect.objectContaining({ playOrder: 'shuffle' }));
+  });
+
+  // Regression: a TV remote has no Tab key, so Save was out of reach.
+  it('moves between options with the remote’s arrow keys', () => {
+    renderModal();
+    const close = screen.getByRole('button', { name: 'Close settings' });
+    expect(document.activeElement).toBe(close);
+
+    fireEvent.keyDown(close, { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: '5s' }));
+
+    const save = screen.getByRole('button', { name: /Save Preferences/ });
+    for (let i = 0; i < 40 && document.activeElement !== save; i += 1) {
+      fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' });
+    }
+    expect(document.activeElement).toBe(save);
+  });
+
+  it('keeps Save outside the scrolling area, so it is always on screen', () => {
+    renderModal();
+    const save = screen.getByRole('button', { name: /Save Preferences/ });
+    const scroller = screen.getByRole('button', { name: '5s' }).closest('.overflow-y-auto');
+    expect(scroller).not.toBeNull();
+    expect(scroller!.contains(save)).toBe(false);
+  });
+
   it('moves focus into the dialog on open', () => {
     const { container } = renderModal();
     const dialog = container.querySelector('[role="dialog"]');

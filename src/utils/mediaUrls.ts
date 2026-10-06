@@ -8,6 +8,24 @@ export function isVideoItem(item: MediaItem): boolean {
   );
 }
 
+/**
+ * Where to fetch a video from, best first. For Google videos these are the
+ * streams Google Photos itself plays: 1080p, 720p and 360p H.264 from Google's
+ * video network, correctly labelled for hardware decoders and seekable. The
+ * original file (=dv) comes last: it is often labelled with an H.264 level
+ * too low for its resolution, which phones shrug off but TV decoders stall
+ * on, and it can't be fetched in parts. Small videos lack the larger streams;
+ * a missing one fails at once and the next is tried.
+ */
+export function videoSources(item: MediaItem): string[] {
+  const url = item.videoUrl || item.baseUrl;
+  if (/^https:\/\/lh3\.googleusercontent\.com\/.*=dv$/.test(url)) {
+    const base = url.slice(0, -'=dv'.length);
+    return [`${base}=m37`, `${base}=m22`, `${base}=m18`, url];
+  }
+  return [url];
+}
+
 /** How many photos and how many videos an album holds. */
 export function countMedia(items: MediaItem[]): { photos: number; videos: number } {
   const videos = items.filter(isVideoItem).length;

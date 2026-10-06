@@ -7,6 +7,7 @@ interface UseTvRemoteOptions {
   onBack?: () => void;
   onToggleFullScreen?: () => void;
   onToggleHud?: () => void;
+  onToggleSound?: () => void;
   enabled?: boolean;
 }
 
@@ -17,6 +18,7 @@ export function useTvRemote({
   onBack,
   onToggleFullScreen,
   onToggleHud,
+  onToggleSound,
   enabled = true,
 }: UseTvRemoteOptions) {
   useEffect(() => {
@@ -70,6 +72,13 @@ export function useTvRemote({
           onToggleHud?.();
           break;
 
+        case 'm':
+        case 'M':
+        case 'AudioVolumeMute':
+          e.preventDefault();
+          onToggleSound?.();
+          break;
+
         default:
           break;
       }
@@ -77,5 +86,5 @@ export function useTvRemote({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [enabled, onNext, onPrev, onTogglePlay, onBack, onToggleFullScreen, onToggleHud]);
+  }, [enabled, onNext, onPrev, onTogglePlay, onBack, onToggleFullScreen, onToggleHud, onToggleSound]);
 }

@@ -1,4 +1,4 @@
-import { MediaFilter, SlideshowConfig, TransitionType } from '../types';
+import { MediaFilter, PlayOrder, SlideshowConfig, TransitionType } from '../types';
 
 const CONFIG_STORAGE_KEY = 'gpicshow_config';
 
@@ -12,7 +12,11 @@ export const DEFAULT_CONFIG: SlideshowConfig = {
   showClock: true,
   fadeOverlays: true,
   mediaFilter: 'all',
+  playOrder: 'album',
+  videoSound: true,
 };
+
+const VALID_ORDERS: PlayOrder[] = ['album', 'newest', 'oldest', 'shuffle'];
 
 const VALID_FILTERS: MediaFilter[] = ['all', 'photos', 'videos'];
 
@@ -49,6 +53,10 @@ export function sanitizeConfig(raw: unknown): SlideshowConfig {
     mediaFilter: VALID_FILTERS.includes(input.mediaFilter as MediaFilter)
       ? (input.mediaFilter as MediaFilter)
       : DEFAULT_CONFIG.mediaFilter,
+    playOrder: VALID_ORDERS.includes(input.playOrder as PlayOrder)
+      ? (input.playOrder as PlayOrder)
+      : DEFAULT_CONFIG.playOrder,
+    videoSound: typeof input.videoSound === 'boolean' ? input.videoSound : DEFAULT_CONFIG.videoSound,
   };
 }
 

@@ -1,12 +1,40 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { MediaItem, TransitionType } from '../types';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { MediaItem, PlayOrder, TransitionType } from '../types';
 import { getRandomTransition } from '../utils/transitions';
 import { isVideoItem, preloadImage } from '../utils/mediaUrls';
+import { buildSequence, freshSeed } from '../utils/playOrder';
+import { loadProgress, saveProgress } from '../utils/playProgress';
 
 interface UseSlideshowOptions {
   items: MediaItem[];
   durationSeconds: number;
   transitionEffect: TransitionType;
+  /** Defaults to the album's own order. */
+  order?: PlayOrder;
+  /** When given, progress is saved under it and resumed next time. */
+  albumKey?: string;
+}
+
+/** Where the slideshow is: a position within one pass through the album. */
+interface Nav {
+  pos: number;
+  /** Shuffle seed for this pass (unused by the other orders). */
+  seed: number;
+  /** The pass before this one, so Back can step into it. */
+  prevSeed: number | null;
+  /** The pass Back stepped out of, so Next returns to it rather than a new one. */
+  forwardSeed: number | null;
+}
+
+/** Carry on from the saved item, if this album was last played in the same order. */
+function startNav(items: MediaItem[], order: PlayOrder, albumKey?: string): Nav {
+  const saved = albumKey ? loadProgress(albumKey) : null;
+  if (saved && saved.order === order) {
+    const sequence = buildSequence(items, order, saved.seed);
+    const pos = sequence.findIndex((i) => items[i]?.id === saved.itemId);
+    return { pos: Math.max(0, pos), seed: saved.seed, prevSeed: saved.prevSeed, forwardSeed: null };
+  }
+  return { pos: 0, seed: order === 'shuffle' ? freshSeed(items) : 0, prevSeed: null, forwardSeed: null };
 }
 
 const MIN_SLIDE_MS = 3000;
@@ -31,8 +59,13 @@ export function useSlideshow({
   items,
   durationSeconds,
   transitionEffect,
+  order = 'album',
+  albumKey,
 }: UseSlideshowOptions) {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [nav, setNav] = useState<Nav>(() => startNav(items, order, albumKey));
+  const sequence = useMemo(() => buildSequence(items, order, nav.seed), [items, order, nav.seed]);
+  /** Position in this pass, which is also what the on-screen counter shows. */
+  const currentIndex = Math.min(nav.pos, Math.max(0, sequence.length - 1));
   const [isPlaying, setIsPlaying] = useState(true);
   const [activeRandomEffect, setActiveRandomEffect] = useState<Exclude<TransitionType, 'random'>>('ken-burns');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -42,15 +75,29 @@ export function useSlideshow({
   const currentIndexRef = useRef(currentIndex);
   currentIndexRef.current = currentIndex;
 
-  const currentItem: MediaItem | undefined = items[currentIndex];
+  const currentItem: MediaItem | undefined = items[sequence[currentIndex]];
   const isVideo = currentItem ? isVideoItem(currentItem) : false;
 
-  // Keep the index inside range if the album is reloaded with fewer items.
+  // When the album reloads (new photos, fewer photos), stay on the same item
+  // rather than whatever now sits at its old position.
+  const currentIdRef = useRef(currentItem?.id);
+  const lastItemsRef = useRef(items);
   useEffect(() => {
-    if (items.length > 0 && currentIndex >= items.length) {
-      setCurrentIndex(0);
-    }
-  }, [items.length, currentIndex]);
+    if (lastItemsRef.current === items) return;
+    lastItemsRef.current = items;
+    const found = sequence.findIndex((i) => items[i]?.id === currentIdRef.current);
+    setNav((n) => ({ ...n, pos: found >= 0 ? found : n.pos < sequence.length ? n.pos : 0 }));
+  }, [items, sequence]);
+  // Declared after the effect above, so that effect still sees the previous item.
+  useEffect(() => {
+    currentIdRef.current = currentItem?.id;
+  });
+
+  // Remember where this album is, so switching the TV off loses nothing.
+  useEffect(() => {
+    if (!albumKey || !currentItem) return;
+    saveProgress(albumKey, { order, seed: nav.seed, prevSeed: nav.prevSeed, itemId: currentItem.id });
+  }, [albumKey, order, nav.seed, nav.prevSeed, currentItem]);
 
   const selectNextEffect = useCallback(() => {
     if (transitionEffect === 'random') {
@@ -59,16 +106,36 @@ export function useSlideshow({
   }, [transitionEffect]);
 
   const nextSlide = useCallback(() => {
-    if (items.length === 0) return;
+    const n = sequence.length;
+    if (n === 0) return;
     selectNextEffect();
-    setCurrentIndex((prev) => (prev + 1) % items.length);
-  }, [items.length, selectNextEffect]);
+    setNav((cur) => {
+      const pos = Math.min(cur.pos, n - 1);
+      if (pos + 1 < n) return { ...cur, pos: pos + 1 };
+      // End of a pass. Every order loops; a shuffle starts a fresh pass, or
+      // returns to the one Back stepped out of.
+      if (order !== 'shuffle') return { ...cur, pos: 0 };
+      const seed = cur.forwardSeed ?? freshSeed(items, items[sequence[n - 1]]?.id);
+      return { pos: 0, seed, prevSeed: cur.seed, forwardSeed: null };
+    });
+  }, [sequence, items, order, selectNextEffect]);
 
+  /** Back always steps through what was actually shown, even across passes. */
   const prevSlide = useCallback(() => {
-    if (items.length === 0) return;
+    const n = sequence.length;
+    if (n === 0) return;
     selectNextEffect();
-    setCurrentIndex((prev) => (prev - 1 + items.length) % items.length);
-  }, [items.length, selectNextEffect]);
+    setNav((cur) => {
+      const pos = Math.min(cur.pos, n - 1);
+      if (pos > 0) return { ...cur, pos: pos - 1 };
+      if (order === 'shuffle' && cur.prevSeed !== null) {
+        return { pos: n - 1, seed: cur.prevSeed, prevSeed: null, forwardSeed: cur.seed };
+      }
+      return { ...cur, pos: n - 1 };
+    });
+  }, [sequence.length, order, selectNextEffect]);
+
+  const setCurrentIndex = useCallback((pos: number) => setNav((cur) => ({ ...cur, pos })), []);
 
   const togglePlay = useCallback(() => {
     setIsPlaying((prev) => !prev);
@@ -109,11 +176,11 @@ export function useSlideshow({
   // Warm the next photo so the transition does not show a half-loaded image.
   useEffect(() => {
     if (items.length <= 1) return;
-    const nextItem = items[(currentIndex + 1) % items.length];
+    const nextItem = items[sequence[(currentIndex + 1) % sequence.length]];
     if (nextItem && !isVideoItem(nextItem)) {
       preloadImage(nextItem.baseUrl);
     }
-  }, [items, currentIndex]);
+  }, [items, sequence, currentIndex]);
 
   // Auto-advance. Photos use the configured duration; videos only get the
   // safety ceiling, because normal advancing happens on `ended`.

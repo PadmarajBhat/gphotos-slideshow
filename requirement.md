@@ -39,9 +39,9 @@
 
 | ID | Requirement | Source | Acceptance criteria | Status |
 |---|---|---|---|---|
-| REQ-S1 | The slideshow must use random transitions. | Explicit | Transition style varies between slides; a fixed style can also be chosen. | ✅ Met — crossfade, Ken Burns, cinematic push, soft scale, plus random |
+| REQ-S1 | The slideshow must use random transitions. | Explicit | Transition style varies between slides; a fixed style can also be chosen. | ✅ Met — crossfade, Ken Burns, cinematic push, soft scale, plus random; the play order can also be shuffled, or run newest or oldest first |
 | REQ-S2 | The user must be able to control the duration between image changes. | Explicit | Duration is user-selectable and takes effect immediately. | ✅ Met — the choice persists across reloads, and Cancel discards edits |
-| REQ-S3 | Every video must play completely before the slideshow advances. | Explicit | The auto-advance timer is suspended for videos; advance happens only on playback completion. | ✅ Met — plays to completion; a clip slow to start on home Wi-Fi is given 30s (a momentary stall no longer skips it, which had been discarding most videos), and only a clip that never starts, stops moving, errors or never ends is skipped. Settings → Play can show videos only. |
+| REQ-S3 | Every video must play completely before the slideshow advances. | Explicit | The auto-advance timer is suspended for videos; advance happens only on playback completion. | ✅ Met — plays to completion; a clip slow to start on home Wi-Fi is given 30s (a momentary stall no longer skips it, which had been discarding most videos), and only a clip that never starts, stops moving, errors or never ends is skipped. Settings → Play can show videos only. Videos now stream as Google's correctly encoded 1080p/720p/360p versions with the original as last resort, after a Bravia stalled on original files, and play with sound. |
 | REQ-S4 | The slideshow image must be full screen. | Explicit | Media fills the viewport, preserving aspect ratio. | ✅ Met — `100vw × 100vh` with `object-contain` |
 | REQ-S5 | When an image cannot fill the screen, the remaining area must show a blurred background derived from that image. | Explicit | Portrait and 4:3 media on a 16:9 screen are letterboxed with a blurred fill rather than black bars. | ✅ Met — the backdrop uses a downscaled copy, and videos fall back to the vignette over a dark base |
 | REQ-S6 | Playback must be pausable and manually navigable. | Implied | Play/pause, next and previous work for both photos and videos. | ✅ Met — pause and resume reach the video element as well as the timer |
@@ -62,7 +62,7 @@
 | REQ-U1 | The app must be fully operable with a TV remote. | Explicit ("targeting it for my TV") | D-pad arrows move focus between albums, OK/Enter selects, Back returns — with a clearly visible focus indicator. | ✅ Met — D-pad spatial navigation on the home screen (the latest album is pre-focused, so one OK resumes it), plus focus containment in dialogs. Covered by HomeScreen, spatial-navigation and SettingsModal tests; on-device W95C check still outstanding. |
 | REQ-U2 | The app must be simple enough for an elderly user to operate. | Explicit | An elderly user can go from opening the app to a running slideshow of their own photos without developer knowledge. | ✅ Met — scan the QR on the TV, paste an album link on the phone, tap Send. Nothing to type on the TV, no Google Cloud project, no sign-in. Next time it is one press of OK under Continue. |
 | REQ-U3 | User preferences must persist between sessions. | Implied | Duration, transition, temperature unit, clock format and overlay toggles survive a reload or TV power-cycle. | ✅ Met — preferences persist to localStorage with per-field sanitisation, so a corrupt entry cannot stop the frame starting |
-| REQ-U4 | The app must run unattended for long periods as an ambient photo frame. | Implied | Playback continues correctly for many hours without user intervention. | ⚠️ Partial — runs unattended: shared albums reload every 6 hours, and when photos stop loading the slideshow backs off (5s doubling to 60s) instead of racing through the album. Open: how long Google's shared-album photo links stay valid is undocumented and not yet measured over days; the 6-hour reload is the mitigation. |
+| REQ-U4 | The app must run unattended for long periods as an ambient photo frame. | Implied | Playback continues correctly for many hours without user intervention. | ⚠️ Partial — runs unattended: shared albums reload every 6 hours, and when photos stop loading the slideshow backs off (5s doubling to 60s) instead of racing through the album. Each album resumes from the photo that was on screen after a power cut, in the same order. Open: how long Google's shared-album photo links stay valid is undocumented and not yet measured over days; the 6-hour reload is the mitigation. |
 | REQ-U5 | Interface text and controls must be large and high-contrast for 10-foot viewing. | Implied | Typography and focus rings are legible from a couch. | ✅ Met — large type, 4 px amber focus ring |
 
 ## 6. Privacy & Trust
@@ -85,9 +85,9 @@
 
 | ID | Requirement | Source | Acceptance criteria | Status |
 |---|---|---|---|---|
-| REQ-Q1 | The project must build and its tests must pass. | Implied | `npm run build` and `npm test` both succeed from a clean checkout. | ✅ Met — lint, 240 tests and the production build all pass; CI enforces all three on Node 20 and 22 |
+| REQ-Q1 | The project must build and its tests must pass. | Implied | `npm run build` and `npm test` both succeed from a clean checkout. | ✅ Met — lint, 270 tests and the production build all pass; CI enforces all three on Node 20 and 22 |
 | REQ-Q2 | The repository must contain no unreachable or misleading code. | Implied | Every module is reachable from the application entry point; automated checks genuinely check. | ✅ Met — the shared-album feature is wired into the connect flow; the drift checker now genuinely fails on drift; dead CSS classes and the unrelated colour palette are gone |
-| REQ-Q3 | Core behaviour must be covered by automated tests. | Implied | Playback, video handling, formatting and API mapping are tested. | ✅ Met — 240 tests across 29 files cover playback and back-off, video handling, the phone-to-TV hand-off (server and both screens), album loading and pagination, the helper's HTTP layer and storage, remote keys, navigation, preferences and media URLs |
+| REQ-Q3 | Core behaviour must be covered by automated tests. | Implied | Playback, video handling, formatting and API mapping are tested. | ✅ Met — 270 tests across 32 files cover playback and back-off, video handling, the phone-to-TV hand-off (server and both screens), album loading and pagination, the helper's HTTP layer and storage, remote keys, navigation, preferences and media URLs |
 
 ---
 
@@ -109,7 +109,7 @@
 
 | ID | Was | Now |
 |---|---|---|
-| REQ-Q1 | The project did not build | Lint, 240 tests and the production build all pass; CI enforces them on Node 20 and 22 |
+| REQ-Q1 | The project did not build | Lint, 270 tests and the production build all pass; CI enforces them on Node 20 and 22 |
 | REQ-G1 | Sign-in could never succeed (fabricated Client ID) | Placeholder removed, actionable errors, build-time ID supported, and a route that needs no sign-in |
 | REQ-U2 | Personal photos required developer-level Google Cloud setup | Scan the TV's QR and send an album link from the phone; nothing to configure |
 | REQ-U1 | A TV remote could not select an album | Explicit D-pad grid navigation plus dialog focus containment |

@@ -61,6 +61,8 @@ describe('Preference storage', () => {
       showWeather: 'yes',
       fadeOverlays: 'sometimes',
       mediaFilter: 'gifs',
+      playOrder: 'backwards',
+      videoSound: 'loud',
     });
 
     expect(sanitized.durationSeconds).toBe(DEFAULT_CONFIG.durationSeconds);
@@ -70,6 +72,8 @@ describe('Preference storage', () => {
     expect(sanitized.showWeather).toBe(true);
     expect(sanitized.fadeOverlays).toBe(true);
     expect(sanitized.mediaFilter).toBe('all');
+    expect(sanitized.playOrder).toBe('album');
+    expect(sanitized.videoSound).toBe(true);
   });
 
   it('keeps valid values that differ from the defaults', () => {
@@ -79,11 +83,15 @@ describe('Preference storage', () => {
       showClock: false,
       fadeOverlays: false,
       mediaFilter: 'videos',
+      playOrder: 'newest',
+      videoSound: false,
     });
 
     expect(sanitized.durationSeconds).toBe(5);
     expect(sanitized.fadeOverlays).toBe(false);
     expect(sanitized.mediaFilter).toBe('videos');
+    expect(sanitized.playOrder).toBe('newest');
+    expect(sanitized.videoSound).toBe(false);
     expect(sanitized.transitionEffect).toBe('ken-burns');
     expect(sanitized.showClock).toBe(false);
   });

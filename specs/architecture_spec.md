@@ -73,7 +73,10 @@ src/
   - **Failure handling is required**, because a video that never ends would otherwise freeze the frame permanently:
     - `onError` advances immediately.
     - `stalled` is **not** a failure (revised 2026-10-06). Google's video server ignores byte-range requests, so a TV streams each clip from the start and the browser reports `stalled` within about 3s while a large file downloads; skipping on it threw away nearly every video on home Wi-Fi.
-    - A 30s start watchdog advances if `playing` never fires.
+    - **Sources** (`videoSources`): Google's streaming renditions `=m37` (1080p), `=m22` (720p), `=m18` (360p) from googlevideo.com, then the original `=dv`. The original is often labelled H.264 level 3.0 whatever its resolution (a 1080×1920 clip measured so); phones play it, but a Bravia's decoder showed a blank screen, and then the next video too. The renditions are correctly labelled (1080p at level 4.0) and support byte ranges. A missing rendition (small clips lack 1080p) errors at once. An error or a 20s no-start moves to the next source; only the last source failing skips the video.
+    - **Decoder release**: on leaving a video the element is paused, its `src` removed and `load()` called, because TV browsers keep a decoder until garbage collection and have few.
+    - **Sound**: no `muted`/`autoPlay` attributes; the view sets `muted` from the `videoSound` setting and calls `play()`. A `NotAllowedError` (no user activation yet, e.g. after a reload) retries muted, shows "Press any button or tap for sound", and the next keydown or pointerdown unmutes inside that gesture and is swallowed (except exit keys) so OK doesn't also pause.
+    - A 30s start watchdog on the last source advances if `playing` never fires.
     - A 30s no-progress watchdog advances a clip that started but stopped moving (no `timeupdate`).
     - A 10-minute ceiling in `useSlideshow` advances regardless.
     - A rejected `play()` promise advances.

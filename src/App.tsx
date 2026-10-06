@@ -13,7 +13,9 @@ import {
   loadRecentAlbums,
   recordRecentAlbum,
 } from './utils/recentAlbums';
+import { clearProgress } from './utils/playProgress';
 import { HomeScreen } from './components/HomeScreen';
+import { LoadingAlbum } from './components/LoadingAlbum';
 import { SlideshowView } from './components/SlideshowView';
 import { SettingsModal } from './components/SettingsModal';
 import { SharedAlbumModal } from './components/SharedAlbumModal';
@@ -184,7 +186,17 @@ const FrameApp: React.FC = () => {
   );
 
   if (playing && activeItems.length > 0) {
-    return <SlideshowView items={playableItems} config={config} onExit={() => setPlaying(null)} />;
+    return (
+      <SlideshowView
+        // Progress is kept per album and per filter: photos-only and
+        // videos-only each remember their own place.
+        albumKey={`${playing.key}|${config.mediaFilter}`}
+        items={playableItems}
+        config={config}
+        onExit={() => setPlaying(null)}
+        onToggleSound={() => setConfig((c) => ({ ...c, videoSound: !c.videoSound }))}
+      />
+    );
   }
 
   // Resuming "Your Google Photos" only makes sense while this frame is paired.
@@ -223,12 +235,7 @@ const FrameApp: React.FC = () => {
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
-      {isLoading && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
-          <div className="w-14 h-14 border-4 border-amber-400 border-t-transparent rounded-full animate-spin" />
-          <p className="text-xl font-bold text-white">Loading album…</p>
-        </div>
-      )}
+      {isLoading && <LoadingAlbum />}
 
       {isSharedOpen && (
         <SharedAlbumModal
@@ -257,6 +264,7 @@ const FrameApp: React.FC = () => {
           hasRecent={recent.length > 0}
           onClearRecent={() => {
             clearRecentAlbums();
+            clearProgress();
             setRecent([]);
           }}
         />
