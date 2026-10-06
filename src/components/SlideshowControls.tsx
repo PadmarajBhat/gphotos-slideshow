@@ -11,7 +11,11 @@ import {
   EyeOff,
   Volume2,
   VolumeX,
+  Settings,
 } from 'lucide-react';
+
+/** Smaller on phones, so every button fits a 360px screen. */
+const BUTTON = 'p-1.5 sm:p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-full transition tv-focus-target';
 
 interface SlideshowControlsProps {
   isPlaying: boolean;
@@ -25,6 +29,7 @@ interface SlideshowControlsProps {
   onToggleHud: () => void;
   soundOn?: boolean;
   onToggleSound?: () => void;
+  onOpenSettings?: () => void;
   currentIndex: number;
   totalItems: number;
 }
@@ -41,6 +46,7 @@ export const SlideshowControls: React.FC<SlideshowControlsProps> = ({
   onToggleHud,
   soundOn = true,
   onToggleSound,
+  onOpenSettings,
   currentIndex,
   totalItems,
 }) => {
@@ -55,7 +61,7 @@ export const SlideshowControls: React.FC<SlideshowControlsProps> = ({
       <button
         onClick={onBack}
         title="Back to Albums (Escape / Back)"
-        className="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-full transition tv-focus-target"
+        className={BUTTON}
         aria-label="Back to Albums"
       >
         <ArrowLeft className="w-5 h-5" />
@@ -66,7 +72,7 @@ export const SlideshowControls: React.FC<SlideshowControlsProps> = ({
       <button
         onClick={onPrev}
         title="Previous Photo (Left Arrow)"
-        className="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-full transition tv-focus-target"
+        className={BUTTON}
         aria-label="Previous Slide"
       >
         <SkipBack className="w-5 h-5" />
@@ -84,7 +90,7 @@ export const SlideshowControls: React.FC<SlideshowControlsProps> = ({
       <button
         onClick={onNext}
         title="Next Photo (Right Arrow)"
-        className="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-full transition tv-focus-target"
+        className={BUTTON}
         aria-label="Next Slide"
       >
         <SkipForward className="w-5 h-5" />
@@ -99,7 +105,7 @@ export const SlideshowControls: React.FC<SlideshowControlsProps> = ({
       <button
         onClick={onToggleHud}
         title="Toggle Ambient Info HUD (H key)"
-        className="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-full transition tv-focus-target"
+        className={`hidden sm:inline-flex ${BUTTON}`}
         aria-label="Toggle HUD"
       >
         {showHud ? <Eye className="w-5 h-5 text-amber-300" /> : <EyeOff className="w-5 h-5 text-slate-400" />}
@@ -109,10 +115,21 @@ export const SlideshowControls: React.FC<SlideshowControlsProps> = ({
         <button
           onClick={onToggleSound}
           title="Video sound (M key)"
-          className="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-full transition tv-focus-target"
+          className={BUTTON}
           aria-label={soundOn ? 'Turn video sound off' : 'Turn video sound on'}
         >
           {soundOn ? <Volume2 className="w-5 h-5 text-amber-300" /> : <VolumeX className="w-5 h-5 text-slate-400" />}
+        </button>
+      )}
+
+      {onOpenSettings && (
+        <button
+          onClick={onOpenSettings}
+          title="Settings (Menu or S key)"
+          className={BUTTON}
+          aria-label="Settings"
+        >
+          <Settings className="w-5 h-5" />
         </button>
       )}
 
@@ -121,7 +138,7 @@ export const SlideshowControls: React.FC<SlideshowControlsProps> = ({
         <button
           onClick={onToggleFullScreen}
           title="Toggle Fullscreen (F key)"
-          className="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-full transition tv-focus-target"
+          className={BUTTON}
           aria-label="Toggle Fullscreen"
         >
           {isFullScreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}

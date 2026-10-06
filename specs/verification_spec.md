@@ -29,12 +29,13 @@ Requirement IDs in the last column refer to [`requirement.md`](../requirement.md
 | AC-24 | Play Order and Resume | `playOrder.test.ts`, `playProgress.test.ts`, `useSlideshow.test.ts`, `SettingsModal.test.tsx` | Newest/oldest sort by date with undated last; shuffle covers every item once per pass, is reproducible from its seed, keeps its order as photos are added, and spreads videos through the album; progress resumes per album and filter; Back steps into the previous pass and Next returns | REQ-S1, REQ-U4 |
 | AC-25 | Video Sources, Sound and TV Decoders | `SlideshowView.test.tsx` | 1080p, 720p, 360p, then the original are tried in turn; the decoder is released on leaving a video; sound plays when allowed, otherwise the first press enables it without pausing; muting holds | REQ-S3 |
 | AC-26 | TV-Reachable Settings and Hints | `SettingsModal.test.tsx`, `LoadingAlbum.test.tsx`, `SlideshowView.test.tsx` | Arrow keys reach Save; Save sits outside the scrolling options; loading shows elapsed seconds and expectations; remote presses reveal the controls wherever focus is | REQ-U1, REQ-U2 |
+| AC-27 | Settings During the Slideshow | `SlideshowView.test.tsx` | The gear, Menu and S open Settings; the slideshow pauses while it is open, ignores the remote's keys, and resumes after; Down reaches the bar, Left/Right move along it without changing slides, Up leaves it | REQ-U1, REQ-U2 |
 | AC-23 | Photos, Videos or Both | `mediaUrls.test.ts`, `SettingsModal.test.tsx`, `storage.test.ts`, `HomeScreen.test.tsx`, `recentAlbums.test.ts` | The filter plays only the chosen kind and falls back to everything when an album has none; Continue cards read e.g. "627 photos · 60 videos"; older saved entries still load | REQ-G4, REQ-U2 |
 | AC-22 | Fading Overlays | `useOverlayRhythm.test.ts`, `SettingsModal.test.tsx`, `storage.test.ts` | Clock and weather fade and return on separate, offset rhythms proportional to the slide; details leave long slides partway through and return with the next photo; nothing flickers on short slides; the setting persists and switching it off holds everything steady | REQ-H4 |
 | AC-21 | Home Screen Always Reachable | `HomeScreen.test.tsx` + measured in the browser preview | With three albums in Continue, the QR and its code are fully on screen with no scrolling at 960×540, 1280×720, 1920×1080 and 768×1024; phones and landscape phones scroll to reach them | REQ-P3, REQ-U1, REQ-U2 |
 
 ## 2. Test Suites
-Vitest + React Testing Library, 270 tests across 32 files.
+Vitest + React Testing Library, 273 tests across 32 files.
 
 | File | Covers |
 |---|---|

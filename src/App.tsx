@@ -81,6 +81,10 @@ const FrameApp: React.FC = () => {
   // Photos only, videos only, or both, as chosen in Settings.
   const playableItems = useMemo(() => filterMedia(activeItems, config.mediaFilter), [activeItems, config.mediaFilter]);
 
+  // Stable, so the slideshow's key handlers aren't re-registered every render.
+  const toggleSound = useCallback(() => setConfig((c) => ({ ...c, videoSound: !c.videoSound })), []);
+  const openSettings = useCallback(() => setIsSettingsOpen(true), []);
+
   // If the source disappears mid-play (for example the frame is unpaired),
   // return home instead of resuming unexpectedly later.
   useEffect(() => {
@@ -186,16 +190,29 @@ const FrameApp: React.FC = () => {
   );
 
   if (playing && activeItems.length > 0) {
+    const albumKey = `${playing.key}|${config.mediaFilter}`;
     return (
-      <SlideshowView
-        // Progress is kept per album and per filter: photos-only and
-        // videos-only each remember their own place.
-        albumKey={`${playing.key}|${config.mediaFilter}`}
-        items={playableItems}
-        config={config}
-        onExit={() => setPlaying(null)}
-        onToggleSound={() => setConfig((c) => ({ ...c, videoSound: !c.videoSound }))}
-      />
+      <>
+        <SlideshowView
+          // A new order or filter starts the album afresh in it (or where that
+          // filter last was); everything else applies to the running show.
+          key={`${albumKey}|${config.playOrder}`}
+          // Progress is kept per album and per filter: photos-only and
+          // videos-only each remember their own place.
+          albumKey={albumKey}
+          items={playableItems}
+          config={config}
+          onExit={() => setPlaying(null)}
+          onToggleSound={toggleSound}
+          onOpenSettings={openSettings}
+          suspended={isSettingsOpen}
+        />
+        {/* Settings over the slideshow: just the slideshow options, not the
+            album and history controls, which belong to the home screen. */}
+        {isSettingsOpen && (
+          <SettingsModal onClose={() => setIsSettingsOpen(false)} config={config} onSaveConfig={setConfig} />
+        )}
+      </>
     );
   }
 

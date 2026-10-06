@@ -21,6 +21,10 @@ interface SlideshowViewProps {
   onExit: () => void;
   /** Flip the video sound setting (the control bar's speaker, or M). */
   onToggleSound?: () => void;
+  /** Open Settings over the slideshow (the control bar's gear, Menu or S). */
+  onOpenSettings?: () => void;
+  /** A dialog is open on top: pause, and leave the remote's keys to it. */
+  suspended?: boolean;
 }
 
 const CONTROLS_IDLE_MS = 4000;
@@ -46,7 +50,15 @@ const SLOW_AFTER_S = 10;
 /** Keys that leave the slideshow; they never get swallowed to turn sound on. */
 const EXIT_KEYS = ['Escape', 'Backspace', 'GoBack', 'Back', 'BrowserBack'];
 
-export const SlideshowView: React.FC<SlideshowViewProps> = ({ items, config, albumKey, onExit, onToggleSound }) => {
+export const SlideshowView: React.FC<SlideshowViewProps> = ({
+  items,
+  config,
+  albumKey,
+  onExit,
+  onToggleSound,
+  onOpenSettings,
+  suspended = false,
+}) => {
   const [showHud, setShowHud] = useState(true);
   const [showControls, setShowControls] = useState(true);
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -54,6 +66,7 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({ items, config, alb
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoStartedRef = useRef(false);
   const lastProgressRef = useRef(0);
+  const controlsRef = useRef<HTMLDivElement>(null);
 
   const {
     currentIndex,
@@ -64,6 +77,7 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({ items, config, alb
     nextSlide,
     prevSlide,
     togglePlay,
+    setIsPlaying,
     handleVideoEnded,
     handleMediaError,
     handleMediaLoaded,
@@ -131,8 +145,64 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({ items, config, alb
     onToggleFullScreen: toggleFullScreen,
     onToggleHud: () => setShowHud((prev) => !prev),
     onToggleSound,
-    enabled: true,
+    enabled: !suspended,
   });
+
+  // Pause while Settings is open over the slideshow, and carry on afterwards
+  // only if it was playing before.
+  const isPlayingRef = useRef(isPlaying);
+  isPlayingRef.current = isPlaying;
+  const resumeAfterRef = useRef(false);
+  useEffect(() => {
+    if (suspended) {
+      resumeAfterRef.current = isPlayingRef.current;
+      setIsPlaying(false);
+    } else if (resumeAfterRef.current) {
+      resumeAfterRef.current = false;
+      setIsPlaying(true);
+    }
+  }, [suspended, setIsPlaying]);
+
+  // The remote on the control bar. Left and Right change slides, so the bar
+  // is reached with Up or Down; there Left and Right move along it and OK
+  // presses the focused button. Up leaves the bar again. Menu or S opens
+  // Settings directly.
+  useEffect(() => {
+    if (suspended) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'ContextMenu' || event.key === 's' || event.key === 'S') {
+        if (!onOpenSettings) return;
+        event.preventDefault();
+        onOpenSettings();
+        return;
+      }
+      // Skip buttons hidden at this screen size (the overlay toggle on phones).
+      const buttons = Array.from(controlsRef.current?.querySelectorAll<HTMLButtonElement>('button') ?? []).filter(
+        (button) => button.getClientRects().length > 0 || !button.matches('.hidden')
+      );
+      if (buttons.length === 0) return;
+      const active = document.activeElement as HTMLButtonElement | null;
+      const inBar = active !== null && buttons.includes(active);
+
+      if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+        event.preventDefault();
+        if (inBar && event.key === 'ArrowUp') active.blur();
+        else if (!inBar) (buttons.find((b) => /^(Play|Pause)$/.test(b.getAttribute('aria-label') ?? '')) ?? buttons[0]).focus();
+        return;
+      }
+      if (!inBar) return;
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        buttons[buttons.indexOf(active) + (event.key === 'ArrowRight' ? 1 : -1)]?.focus();
+      } else if (event.key === 'Enter' || event.key === ' ') {
+        // The focused button handles it; don't also pause the slideshow.
+        event.stopImmediatePropagation();
+      }
+    };
+    window.addEventListener('keydown', onKey, { capture: true });
+    return () => window.removeEventListener('keydown', onKey, { capture: true });
+  }, [suspended, onOpenSettings]);
 
   // Start, pause and resume the video, with sound when allowed.
   useEffect(() => {
@@ -161,7 +231,8 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({ items, config, alb
   // The first press after sound was refused turns it on, rather than doing
   // its usual job (OK would otherwise pause the video). Exit keys still exit.
   useEffect(() => {
-    if (!soundBlocked) return;
+    // Not while Settings is open: its first key press is for Settings.
+    if (!soundBlocked || suspended) return;
     const unlock = (event: Event) => {
       const video = videoRef.current;
       if (video && config.videoSound) video.muted = false;
@@ -178,7 +249,7 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({ items, config, alb
       window.removeEventListener('keydown', unlock, { capture: true });
       window.removeEventListener('pointerdown', unlock, { capture: true });
     };
-  }, [soundBlocked, config.videoSound]);
+  }, [soundBlocked, suspended, config.videoSound]);
 
   // TV browsers hold on to a video's decoder until the element is garbage
   // collected, and have few to spare: after one stuck video, the next could
@@ -392,6 +463,7 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({ items, config, alb
 
       {/* 6. Ambient Control Bar (Revealed on remote/mouse activity) */}
       <div
+        ref={controlsRef}
         className={`absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-30 transition-all duration-300 ${
           showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
@@ -408,6 +480,7 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({ items, config, alb
           onToggleHud={() => setShowHud((prev) => !prev)}
           soundOn={config.videoSound}
           onToggleSound={onToggleSound}
+          onOpenSettings={onOpenSettings}
           currentIndex={currentIndex}
           totalItems={items.length}
         />

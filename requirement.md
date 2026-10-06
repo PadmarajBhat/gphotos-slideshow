@@ -85,9 +85,9 @@
 
 | ID | Requirement | Source | Acceptance criteria | Status |
 |---|---|---|---|---|
-| REQ-Q1 | The project must build and its tests must pass. | Implied | `npm run build` and `npm test` both succeed from a clean checkout. | ✅ Met — lint, 270 tests and the production build all pass; CI enforces all three on Node 20 and 22 |
+| REQ-Q1 | The project must build and its tests must pass. | Implied | `npm run build` and `npm test` both succeed from a clean checkout. | ✅ Met — lint, 273 tests and the production build all pass; CI enforces all three on Node 20 and 22 |
 | REQ-Q2 | The repository must contain no unreachable or misleading code. | Implied | Every module is reachable from the application entry point; automated checks genuinely check. | ✅ Met — the shared-album feature is wired into the connect flow; the drift checker now genuinely fails on drift; dead CSS classes and the unrelated colour palette are gone |
-| REQ-Q3 | Core behaviour must be covered by automated tests. | Implied | Playback, video handling, formatting and API mapping are tested. | ✅ Met — 270 tests across 32 files cover playback and back-off, video handling, the phone-to-TV hand-off (server and both screens), album loading and pagination, the helper's HTTP layer and storage, remote keys, navigation, preferences and media URLs |
+| REQ-Q3 | Core behaviour must be covered by automated tests. | Implied | Playback, video handling, formatting and API mapping are tested. | ✅ Met — 273 tests across 32 files cover playback and back-off, video handling, the phone-to-TV hand-off (server and both screens), album loading and pagination, the helper's HTTP layer and storage, remote keys, navigation, preferences and media URLs |
 
 ---
 
@@ -109,7 +109,7 @@
 
 | ID | Was | Now |
 |---|---|---|
-| REQ-Q1 | The project did not build | Lint, 270 tests and the production build all pass; CI enforces them on Node 20 and 22 |
+| REQ-Q1 | The project did not build | Lint, 273 tests and the production build all pass; CI enforces them on Node 20 and 22 |
 | REQ-G1 | Sign-in could never succeed (fabricated Client ID) | Placeholder removed, actionable errors, build-time ID supported, and a route that needs no sign-in |
 | REQ-U2 | Personal photos required developer-level Google Cloud setup | Scan the TV's QR and send an album link from the phone; nothing to configure |
 | REQ-U1 | A TV remote could not select an album | Explicit D-pad grid navigation plus dialog focus containment |

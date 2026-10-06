@@ -52,6 +52,7 @@ A shared-album link is the one route that works everywhere and loads a complete 
 - 🖼️ **Full-screen with blur backdrop**: photos that don't match the screen shape are letterboxed against a blurred copy of themselves.
 - 🎬 **Videos play to completion, with sound**, before advancing. They stream as Google Photos' own 1080p, 720p or 360p versions, falling back through them, so TVs that stall on an original file still play it. A clip slow to start on home Wi-Fi is given time; one that never starts or stops moving is skipped instead of freezing the frame. If the browser wants a press before allowing sound, the first press turns it on. The speaker on the control bar (or **M**) mutes.
 - 🔀 **Album order, newest first, oldest first or shuffle** (Settings → Order). Shuffle plays everything once before any repeat. Every album carries on from where it was, even after the TV is switched off, and **Back** always steps through what was actually shown.
+- ⚙️ **Settings without leaving the slideshow**: the gear on the control bar (or Menu / S on the remote) opens them over the paused slideshow; changes apply when you close them.
 - ⏳ **Says what it's doing**: loading an album or a slow photo or video shows how long it has taken and what to expect.
 - 🎞️ **Photos, videos or both**: Settings → Play chooses what an album shows. The Continue cards say how many photos and videos each album holds.
 - 🔀 **Cinematic transitions**: Ken Burns, crossfade, cinematic push, soft scale, or random. Slide duration 5–60s.
@@ -81,6 +82,8 @@ A shared-album link is the one route that works everywhere and loads a complete 
 | **F** | Fullscreen |
 | **H** | Show / hide overlays |
 | **M** | Video sound on / off |
+| **Menu** / **S** | Settings, over the slideshow (paused while open) |
+| **↓** / **↑** | Onto the control bar / off it. On the bar, **←** **→** move between buttons and **OK** presses |
 
 ---
 

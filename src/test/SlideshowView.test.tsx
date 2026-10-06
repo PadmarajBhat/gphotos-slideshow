@@ -171,3 +171,57 @@ describe('SlideshowView video handling', () => {
     expect(bar.className).toMatch(/opacity-100/);
   });
 });
+
+describe('SlideshowView settings and the remote on the control bar', () => {
+  const photo2: MediaItem = { ...photo, id: 'p2', baseUrl: 'https://lh3.googleusercontent.com/pw/p2=w2560-h1440' };
+
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+  });
+
+  function renderPhotos(props: Partial<React.ComponentProps<typeof SlideshowView>> = {}) {
+    const onOpenSettings = vi.fn();
+    const utils = render(
+      <SlideshowView items={[photo, photo2]} config={DEFAULT_CONFIG} onExit={vi.fn()} onOpenSettings={onOpenSettings} {...props} />
+    );
+    return { ...utils, onOpenSettings };
+  }
+  const press = (key: string) => fireEvent.keyDown(document.activeElement ?? window, { key });
+
+  it('opens Settings from the gear on the bar, or with Menu or S', () => {
+    const { onOpenSettings } = renderPhotos();
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    press('ContextMenu');
+    press('s');
+    expect(onOpenSettings).toHaveBeenCalledTimes(3);
+  });
+
+  it('pauses while Settings is open, leaves its keys alone, and carries on after', () => {
+    const { rerender } = renderPhotos();
+    rerender(<SlideshowView items={[photo, photo2]} config={DEFAULT_CONFIG} onExit={vi.fn()} suspended />);
+    expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
+    press('ArrowRight');
+    advance(60_000);
+    expect(screen.getByText('1 / 2')).toBeInTheDocument();
+
+    rerender(<SlideshowView items={[photo, photo2]} config={DEFAULT_CONFIG} onExit={vi.fn()} suspended={false} />);
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument();
+  });
+
+  it('reaches the bar with Down, moves along it with Left and Right, and leaves with Up', () => {
+    renderPhotos();
+    press('ArrowDown');
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Pause' }));
+
+    press('ArrowRight');
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Next Slide' }));
+    // Moving along the bar didn't change the slide.
+    expect(screen.getByText('1 / 2')).toBeInTheDocument();
+
+    press('ArrowUp');
+    press('ArrowRight');
+    expect(screen.getByText('2 / 2')).toBeInTheDocument();
+  });
+});
