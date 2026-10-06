@@ -39,6 +39,21 @@ describe('MediaDetails Component', () => {
     expect(screen.getByText('Golden Sunset at Anjuna Beach')).toBeInTheDocument();
   });
 
+  it('leaves the location out when the photo has none, rather than saying so', () => {
+    render(<MediaDetails item={{ ...testItem, location: undefined }} />);
+    expect(screen.queryByText(/location/i)).not.toBeInTheDocument();
+    expect(screen.getByText('Golden Sunset at Anjuna Beach')).toBeInTheDocument();
+  });
+
+  it('shows no card at all when there is nothing to say', () => {
+    const { container } = render(
+      <MediaDetails
+        item={{ id: 'x', baseUrl: 'https://x/y', filename: '', mimeType: 'image/jpeg', mediaMetadata: { creationTime: '', width: '0', height: '0' } }}
+      />
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it('renders camera gear details', () => {
     render(<MediaDetails item={testItem} />);
     expect(screen.getByText(/Sony/)).toBeInTheDocument();

@@ -53,6 +53,17 @@ describe('SettingsModal', () => {
     expect(onSaveConfig).toHaveBeenCalledWith(expect.objectContaining({ showWeather: false }));
   });
 
+  it('lets the overlays stay put instead of fading now and then', () => {
+    const { onSaveConfig } = renderModal();
+    const fade = screen.getByRole('button', { name: /Fade them in and out/ });
+    expect(fade).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(fade);
+    fireEvent.click(screen.getByRole('button', { name: /Save Preferences/ }));
+
+    expect(onSaveConfig).toHaveBeenCalledWith(expect.objectContaining({ fadeOverlays: false }));
+  });
+
   it('moves focus into the dialog on open', () => {
     const { container } = renderModal();
     const dialog = container.querySelector('[role="dialog"]');

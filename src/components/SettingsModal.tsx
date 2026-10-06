@@ -195,6 +195,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               );
             })}
           </div>
+          <button
+            type="button"
+            aria-pressed={localConfig.fadeOverlays}
+            onClick={() => setLocalConfig((p) => ({ ...p, fadeOverlays: !p.fadeOverlays }))}
+            className={`mt-1 py-1.5 px-2 text-xs font-semibold rounded-xl border transition tv-focus-target ${
+              localConfig.fadeOverlays
+                ? 'bg-amber-400 text-slate-950 border-amber-400'
+                : 'bg-slate-800 text-slate-400 border-slate-700'
+            }`}
+          >
+            Fade them in and out now and then
+          </button>
         </div>
 
         {/* 5. Sources and history - the controls the simplified home screen hides */}

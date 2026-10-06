@@ -10,6 +10,7 @@ export const DEFAULT_CONFIG: SlideshowConfig = {
   showDetails: true,
   showWeather: true,
   showClock: true,
+  fadeOverlays: true,
 };
 
 const VALID_DURATIONS = [5, 10, 15, 30, 60];
@@ -41,6 +42,7 @@ export function sanitizeConfig(raw: unknown): SlideshowConfig {
     showDetails: typeof input.showDetails === 'boolean' ? input.showDetails : true,
     showWeather: typeof input.showWeather === 'boolean' ? input.showWeather : true,
     showClock: typeof input.showClock === 'boolean' ? input.showClock : true,
+    fadeOverlays: typeof input.fadeOverlays === 'boolean' ? input.fadeOverlays : DEFAULT_CONFIG.fadeOverlays,
   };
 }
 

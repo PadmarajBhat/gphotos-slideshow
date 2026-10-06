@@ -58,6 +58,8 @@ export interface SlideshowConfig {
   showDetails: boolean;
   showWeather: boolean;
   showClock: boolean;
+  /** Clock, weather and photo info fade out and back now and then, each on its own rhythm. */
+  fadeOverlays: boolean;
 }
 
 export interface WeatherData {

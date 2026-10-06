@@ -16,6 +16,8 @@ Key objectives:
     - **Bottom-Left**: Image details (capture date/time, description, camera details, and location where the source supplies coordinates).
     - **Bottom-Right**: Live local weather details (temperature in °C/°F, condition text, weather glyph, rain/sun forecast) using free, privacy-friendly Open-Meteo API.
     - On screens narrower than 640px the overlays compact and the weather stacks above the details, so no overlay covers another.
+    - The location line appears only when the photo has a location; there is no "not recorded" placeholder, and a photo with nothing to say shows no details card.
+    - **Fading overlays** (setting, on by default): with slides of 20s or more, the clock fades out for about half a slide every four slides, the weather for about 0.6 of a slide every three, offset by a slide and a half, and the details leave each photo halfway to three quarters through. Every interval varies by ±25%, the clock is never away for more than 45s, and slides under 20s are timed as if 20s long. Any remote or mouse activity shows them all while the controls are up.
 - **Instant Demo Mode**: a curated demo album so users can test immediately without any credentials.
 - **Zero-Setup Personal Photos**: a Google Photos shared album link, sent from a phone by scanning the TV's QR code, must load the **whole album, photos and videos**, with no Google Cloud project, no consent screen and no sign-in.
 - **Works on every screen size**: TV, tablet and phone. On phones and tablets the screen is kept awake during a slideshow.

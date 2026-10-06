@@ -58,21 +58,20 @@ export const MediaDetails: React.FC<MediaDetailsProps> = ({ item }) => {
 
   const titleOrDesc = item.description || item.filename;
 
+  // Nothing to say about this photo: show no card rather than an empty one.
+  if (!resolvedLocation && !captureTime && !titleOrDesc && !cameraDetails) return null;
+
   return (
     <div
       aria-label="Image Details"
       className="ambient-glass rounded-2xl p-4 sm:p-5 max-w-lg select-none pointer-events-none transition-all duration-300 shadow-2xl flex flex-col gap-2"
     >
-      {/* Location */}
-      {resolvedLocation ? (
+      {/* Location, only when there is one: shared albums usually carry none,
+          and a line saying so on every photo is just clutter. */}
+      {resolvedLocation && (
         <div className="flex items-center gap-2 min-w-0 text-amber-300 font-semibold text-base sm:text-lg lg:text-xl drop-shadow">
           <MapPin className="w-5 h-5 shrink-0" />
           <span className="truncate">{resolvedLocation}</span>
-        </div>
-      ) : (
-        <div className="flex items-center gap-2 text-slate-300 font-semibold text-base lg:text-lg">
-          <MapPin className="w-4 h-4 shrink-0 text-slate-400" />
-          <span>Location not recorded</span>
         </div>
       )}
 

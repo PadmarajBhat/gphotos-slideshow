@@ -3,6 +3,7 @@ import { MediaItem, SlideshowConfig } from '../types';
 import { useSlideshow } from '../hooks/useSlideshow';
 import { useTvRemote } from '../hooks/useTvRemote';
 import { useWakeLock } from '../hooks/useWakeLock';
+import { CLOCK_RHYTHM, WEATHER_RHYTHM, useDetailsRhythm, useOverlayRhythm } from '../hooks/useOverlayRhythm';
 import { BlurredBackdrop } from './BlurredBackdrop';
 import { AmbientClock } from './AmbientClock';
 import { MediaDetails } from './MediaDetails';
@@ -17,6 +18,10 @@ interface SlideshowViewProps {
 }
 
 const CONTROLS_IDLE_MS = 4000;
+
+/** A slow fade, so an overlay leaving or returning never catches the eye. */
+const fade = (visible: boolean) =>
+  `transition-opacity duration-[1500ms] ease-in-out ${visible ? 'opacity-100' : 'opacity-0'}`;
 
 /** If a video has not begun playing by now, treat it as unplayable. */
 const VIDEO_START_TIMEOUT_MS = 15000;
@@ -126,6 +131,13 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({ items, config, onE
     };
   }, [handleActivity]);
 
+  // Each overlay comes and goes on its own rhythm; any press of the remote or
+  // move of the mouse brings them all back while the controls are up.
+  const slideMs = config.durationSeconds * 1000;
+  const clockVisible = useOverlayRhythm(config.fadeOverlays, slideMs, CLOCK_RHYTHM) || showControls;
+  const weatherVisible = useOverlayRhythm(config.fadeOverlays, slideMs, WEATHER_RHYTHM) || showControls;
+  const detailsVisible = useDetailsRhythm(config.fadeOverlays, slideMs, currentItem?.id) || showControls;
+
   if (!currentItem) {
     return (
       <div className="w-screen h-screen flex items-center justify-center bg-slate-950 text-white">
@@ -192,7 +204,7 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({ items, config, onE
 
       {/* 3. Top-Left: Regional Date & Time */}
       {showHud && config.showClock && (
-        <div className="absolute top-4 left-4 sm:top-6 sm:left-6 lg:top-8 lg:left-8 z-20 transition-opacity duration-300">
+        <div className={`absolute top-4 left-4 sm:top-6 sm:left-6 lg:top-8 lg:left-8 z-20 ${fade(clockVisible)}`}>
           <AmbientClock format12h={config.clockFormat === '12h'} />
         </div>
       )}
@@ -202,14 +214,14 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({ items, config, onE
           A phone is too narrow for both side by side, so there the weather
           sits on top of the details instead. */}
       {showHud && (config.showDetails || config.showWeather) && (
-        <div className="absolute inset-x-4 bottom-4 sm:inset-x-6 sm:bottom-6 lg:inset-x-8 lg:bottom-8 z-20 flex flex-col-reverse gap-2 sm:flex-row sm:items-end sm:gap-4 pointer-events-none transition-opacity duration-300">
+        <div className="absolute inset-x-4 bottom-4 sm:inset-x-6 sm:bottom-6 lg:inset-x-8 lg:bottom-8 z-20 flex flex-col-reverse gap-2 sm:flex-row sm:items-end sm:gap-4 pointer-events-none">
           {config.showDetails && (
-            <div className="self-start min-w-0 max-w-full">
+            <div className={`self-start min-w-0 max-w-full ${fade(detailsVisible)}`}>
               <MediaDetails item={currentItem} />
             </div>
           )}
           {config.showWeather && (
-            <div className="ml-auto shrink-0">
+            <div className={`ml-auto shrink-0 ${fade(weatherVisible)}`}>
               <WeatherWidget tempUnit={config.tempUnit} />
             </div>
           )}

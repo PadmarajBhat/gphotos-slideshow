@@ -59,6 +59,7 @@ describe('Preference storage', () => {
       tempUnit: 'kelvin',
       clockFormat: '36h',
       showWeather: 'yes',
+      fadeOverlays: 'sometimes',
     });
 
     expect(sanitized.durationSeconds).toBe(DEFAULT_CONFIG.durationSeconds);
@@ -66,6 +67,7 @@ describe('Preference storage', () => {
     expect(sanitized.tempUnit).toBe('celsius');
     expect(sanitized.clockFormat).toBe('12h');
     expect(sanitized.showWeather).toBe(true);
+    expect(sanitized.fadeOverlays).toBe(true);
   });
 
   it('keeps valid values that differ from the defaults', () => {
@@ -73,9 +75,11 @@ describe('Preference storage', () => {
       durationSeconds: 5,
       transitionEffect: 'ken-burns',
       showClock: false,
+      fadeOverlays: false,
     });
 
     expect(sanitized.durationSeconds).toBe(5);
+    expect(sanitized.fadeOverlays).toBe(false);
     expect(sanitized.transitionEffect).toBe('ken-burns');
     expect(sanitized.showClock).toBe(false);
   });
