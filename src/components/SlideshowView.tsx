@@ -43,6 +43,12 @@ export const VIDEO_START_TIMEOUT_MS = 30000;
 export const VIDEO_SOURCE_TIMEOUT_MS = 20000;
 /** Started, then made no progress for this long. */
 export const VIDEO_STUCK_MS = 30000;
+/**
+ * Playing this long with not one video frame decoded means sound without a
+ * picture: some TV decoders accept a stream, play its audio and never show
+ * it. That source is then treated as failed and the next one tried.
+ */
+export const NO_PICTURE_AFTER_S = 4;
 /** How long something may take to appear before a loading hint shows. */
 const HINT_AFTER_S = 2;
 const SLOW_AFTER_S = 10;
@@ -278,6 +284,23 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
     return () => clearTimeout(timer);
   }, [isVideo, isPlaying, currentItem?.id, sourceIndex, sources.length, handleVideoError]);
 
+  // Sound but no picture: try the next source.
+  useEffect(() => {
+    if (!isVideo || !isPlaying) return;
+    const timer = setInterval(() => {
+      const video = videoRef.current;
+      if (!video || !videoStartedRef.current || video.currentTime < NO_PICTURE_AFTER_S) return;
+      const frames =
+        video.getVideoPlaybackQuality?.().totalVideoFrames ??
+        (video as HTMLVideoElement & { webkitDecodedFrameCount?: number }).webkitDecodedFrameCount;
+      // Browsers that can't say are left alone.
+      if (frames === 0 || (frames === undefined && video.videoWidth === 0 && video.readyState >= 2)) {
+        handleVideoError();
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [isVideo, isPlaying, currentItem?.id, sourceIndex, handleVideoError]);
+
   // A video that started but has stopped moving (the download died) moves on.
   useEffect(() => {
     if (!isVideo || !isPlaying) return;
@@ -382,7 +405,10 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
             onTimeUpdate={() => {
               lastProgressRef.current = Date.now();
             }}
-            className="max-w-full max-h-full object-contain rounded-lg drop-shadow-2xl pointer-events-auto"
+            // No rounded corners or drop shadow on video, unlike photos: CSS
+            // effects make a TV browser draw every frame through a slower path
+            // that some TVs fail at, leaving sound without a picture.
+            className="max-w-full max-h-full object-contain pointer-events-auto"
           />
         ) : (
           <img

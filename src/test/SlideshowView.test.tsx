@@ -84,6 +84,34 @@ describe('SlideshowView video handling', () => {
     expect(screen.getByText('2 / 2')).toBeInTheDocument();
   });
 
+  // Regression: on the Bravia some videos played their sound with no picture.
+  function fakePlayback(el: HTMLVideoElement, frames: number) {
+    Object.defineProperty(el, 'currentTime', { configurable: true, get: () => 5 });
+    Object.defineProperty(el, 'getVideoPlaybackQuality', { configurable: true, value: () => ({ totalVideoFrames: frames }) });
+  }
+
+  it('switches to a smaller stream when a video plays sound but no picture', () => {
+    const { videoEl } = renderShow();
+    fakePlayback(videoEl(), 0);
+    fireEvent.playing(videoEl());
+    advance(1500);
+    expect(videoEl().getAttribute('src')).toMatch(/=m22$/);
+    expect(screen.getByText('1 / 2')).toBeInTheDocument();
+  });
+
+  it('leaves a video alone while its picture is showing', () => {
+    const { videoEl } = renderShow();
+    fakePlayback(videoEl(), 120);
+    fireEvent.playing(videoEl());
+    advance(3000);
+    expect(videoEl().getAttribute('src')).toMatch(/=m37$/);
+  });
+
+  it('draws videos without CSS effects, which some TVs cannot composite', () => {
+    const { videoEl } = renderShow();
+    expect(videoEl().className).not.toMatch(/drop-shadow|rounded/);
+  });
+
   it('tries the next stream when one never starts', () => {
     const { videoEl } = renderShow();
     advance(VIDEO_SOURCE_TIMEOUT_MS + 100);
