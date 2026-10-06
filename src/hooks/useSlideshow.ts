@@ -70,6 +70,8 @@ export function useSlideshow({
   const [activeRandomEffect, setActiveRandomEffect] = useState<Exclude<TransitionType, 'random'>>('ken-burns');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [retryDelayMs, setRetryDelayMs] = useState(0);
+  /** When the current photo will move on, while that's scheduled. */
+  const [advanceAt, setAdvanceAt] = useState<number | null>(null);
   const failuresRef = useRef(0);
   const failedIndexRef = useRef<number | null>(null);
   const currentIndexRef = useRef(currentIndex);
@@ -191,6 +193,7 @@ export function useSlideshow({
     }
 
     if (!isPlaying || items.length <= 1) {
+      setAdvanceAt(null);
       return;
     }
 
@@ -203,6 +206,7 @@ export function useSlideshow({
     timerRef.current = setTimeout(() => {
       nextSlide();
     }, delayMs);
+    setAdvanceAt(Date.now() + delayMs);
 
     return () => {
       if (timerRef.current) {
@@ -225,6 +229,7 @@ export function useSlideshow({
     handleVideoEnded,
     handleMediaError,
     handleMediaLoaded,
+    advanceAt,
     /** True while photos keep failing and the slideshow is waiting to retry. */
     isRetrying: retryDelayMs > 0,
     setCurrentIndex,

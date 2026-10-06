@@ -14,10 +14,10 @@ Key objectives:
   - Informative ambient HUD overlays:
     - **Top-Left**: Current local date and time formatted for the user's region (auto-detects local timezone, e.g., IST in India, EST/PST in US).
     - **Bottom-Left**: Image details (capture date/time, description, camera details, and location where the source supplies coordinates).
-    - **Bottom-Right**: Live local weather details (temperature in °C/°F, condition text, weather glyph, rain/sun forecast) using free, privacy-friendly Open-Meteo API.
+    - **Bottom-Right**: Live local weather details (temperature in °C/°F, condition text, weather glyph, rain/sun forecast) using free, privacy-friendly Open-Meteo API. Clear skies after dark read "Clear Night" with a moon (Open-Meteo `is_day`).
     - On screens narrower than 640px the overlays compact and the weather stacks above the details, so no overlay covers another.
     - The location line appears only when the photo has a location; there is no "not recorded" placeholder, and a photo with nothing to say shows no details card.
-    - **Fading overlays** (setting, on by default): with slides of 20s or more, the clock fades out for about half a slide every four slides, the weather for about 0.6 of a slide every three, offset by a slide and a half, and the details leave each photo halfway to three quarters through. Every interval varies by ±25%, the clock is never away for more than 45s, and slides under 20s are timed as if 20s long. Any remote or mouse activity shows them all while the controls are up.
+    - **Fading overlays** (setting, on by default): the weather shows for 10s every 2 minutes from the start of the slideshow. The clock and photo info show for a third of each item's time as bookends: the first sixth from when it finishes loading, and the last sixth before it changes (at 60s slides, 10s each, joining into 20s across each change). Videos use their own length and playback position. Slides and clips under 20s keep the clock and photo info up throughout. Pausing, or any remote or mouse activity, shows everything.
 - **Instant Demo Mode**: a curated demo album so users can test immediately without any credentials.
 - **Zero-Setup Personal Photos**: a Google Photos shared album link, sent from a phone by scanning the TV's QR code, must load the **whole album, photos and videos**, with no Google Cloud project, no consent screen and no sign-in.
 - **Works on every screen size**: TV, tablet and phone. On phones and tablets the screen is kept awake during a slideshow.

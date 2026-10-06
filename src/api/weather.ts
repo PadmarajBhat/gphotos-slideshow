@@ -7,22 +7,33 @@ interface OpenMeteoResponse {
     relative_humidity_2m: number;
     precipitation: number;
     weather_code: number;
+    /** 1 between sunrise and sunset at that place, 0 otherwise. */
+    is_day?: number;
   };
 }
 
-export function mapWmoCodeToCondition(code: number): {
+/**
+ * WMO weather code to words and an icon. The same code means clear skies by
+ * day and by night, so the time of day decides between sun and moon: a frame
+ * once said "Clear & Sunny" at 9 PM.
+ */
+export function mapWmoCodeToCondition(
+  code: number,
+  isDay = true
+): {
   text: string;
   icon: WeatherData['icon'];
 } {
-  if (code === 0) return { text: 'Clear & Sunny', icon: 'sun' };
+  if (code === 0) return isDay ? { text: 'Clear & Sunny', icon: 'sun' } : { text: 'Clear Night', icon: 'moon' };
   if (code >= 1 && code <= 3) return { text: 'Partly Cloudy', icon: 'cloud' };
   if (code === 45 || code === 48) return { text: 'Foggy Mist', icon: 'fog' };
-  if (code >= 51 && code <= 55) return { text: 'Light Drizzle', icon: 'rain' };
+  if (code >= 51 && code <= 57) return { text: 'Light Drizzle', icon: 'rain' };
   if (code >= 61 && code <= 67) return { text: 'Rain Shower', icon: 'rain' };
   if (code >= 71 && code <= 77) return { text: 'Snowy Flurries', icon: 'snow' };
   if (code >= 80 && code <= 82) return { text: 'Rain Showers', icon: 'rain' };
+  if (code === 85 || code === 86) return { text: 'Snow Showers', icon: 'snow' };
   if (code >= 95 && code <= 99) return { text: 'Thunderstorm', icon: 'thunder' };
-  return { text: 'Fair Weather', icon: 'sun' };
+  return isDay ? { text: 'Fair Weather', icon: 'sun' } : { text: 'Fair Night', icon: 'moon' };
 }
 
 export async function detectCoordinates(): Promise<{
@@ -73,7 +84,7 @@ export async function detectCoordinates(): Promise<{
 }
 
 export async function fetchCurrentWeather(lat: number, lon: number): Promise<WeatherData> {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code&timezone=auto`;
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,is_day&timezone=auto`;
   const response = await fetch(url);
   
   if (!response.ok) {
@@ -87,7 +98,8 @@ export async function fetchCurrentWeather(lat: number, lon: number): Promise<Wea
     throw new Error('No current weather data available');
   }
 
-  const { text, icon } = mapWmoCodeToCondition(current.weather_code);
+  // Missing is_day counts as day, as before.
+  const { text, icon } = mapWmoCodeToCondition(current.weather_code, current.is_day !== 0);
 
   return {
     temperature: Math.round(current.temperature_2m),

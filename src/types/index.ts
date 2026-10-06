@@ -77,7 +77,7 @@ export interface WeatherData {
   apparentTemperature: number;
   weatherCode: number;
   conditionText: string;
-  icon: 'sun' | 'cloud' | 'rain' | 'snow' | 'thunder' | 'fog';
+  icon: 'sun' | 'moon' | 'cloud' | 'rain' | 'snow' | 'thunder' | 'fog';
   precipitation: number;
   humidity: number;
   city?: string;

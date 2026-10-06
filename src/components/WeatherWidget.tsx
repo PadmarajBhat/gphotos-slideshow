@@ -9,6 +9,7 @@ import {
   CloudFog,
   Droplets,
   CloudSun,
+  Moon,
 } from 'lucide-react';
 
 interface WeatherWidgetProps {
@@ -29,6 +30,8 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({ tempUnit = 'celsiu
         return <Snowflake className="w-9 h-9 text-sky-200" />;
       case 'thunder':
         return <CloudLightning className="w-9 h-9 text-amber-400" />;
+      case 'moon':
+        return <Moon className="w-9 h-9 text-slate-200" />;
       case 'fog':
         return <CloudFog className="w-9 h-9 text-slate-400" />;
       case 'sun':

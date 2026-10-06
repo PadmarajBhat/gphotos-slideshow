@@ -4,14 +4,15 @@ import { MediaItem, SlideshowConfig } from '../types';
 import { useSlideshow } from '../hooks/useSlideshow';
 import { useTvRemote } from '../hooks/useTvRemote';
 import { useWakeLock } from '../hooks/useWakeLock';
-import { CLOCK_RHYTHM, WEATHER_RHYTHM, useDetailsRhythm, useOverlayRhythm } from '../hooks/useOverlayRhythm';
+import { usePhotoBookends, useWeatherRhythm, videoBookendVisible } from '../hooks/useOverlayRhythm';
 import { BlurredBackdrop } from './BlurredBackdrop';
 import { AmbientClock } from './AmbientClock';
 import { MediaDetails } from './MediaDetails';
 import { WeatherWidget } from './WeatherWidget';
 import { SlideshowControls } from './SlideshowControls';
 import { getTransitionClasses } from '../utils/transitions';
-import { videoSources } from '../utils/mediaUrls';
+import { TV_VIDEO_BOX, VideoBox, exceedsBox, videoSources } from '../utils/mediaUrls';
+import { IS_TV_BROWSER } from '../utils/device';
 
 interface SlideshowViewProps {
   items: MediaItem[];
@@ -25,6 +26,8 @@ interface SlideshowViewProps {
   onOpenSettings?: () => void;
   /** A dialog is open on top: pause, and leave the remote's keys to it. */
   suspended?: boolean;
+  /** Largest video picture to play. TVs get their decoders' limit; others none. */
+  videoBox?: VideoBox;
 }
 
 const CONTROLS_IDLE_MS = 4000;
@@ -64,6 +67,7 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
   onToggleSound,
   onOpenSettings,
   suspended = false,
+  videoBox = IS_TV_BROWSER ? TV_VIDEO_BOX : undefined,
 }) => {
   const [showHud, setShowHud] = useState(true);
   const [showControls, setShowControls] = useState(true);
@@ -88,6 +92,7 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
     handleMediaError,
     handleMediaLoaded,
     isRetrying,
+    advanceAt,
   } = useSlideshow({
     items,
     durationSeconds: config.durationSeconds,
@@ -98,7 +103,10 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
 
   // --- Which source of the current video is playing -------------------------
   // Tied to the item, so a new item always starts from its best source.
-  const sources = useMemo(() => (currentItem && isVideo ? videoSources(currentItem) : []), [currentItem, isVideo]);
+  const sources = useMemo(
+    () => (currentItem && isVideo ? videoSources(currentItem, videoBox) : []),
+    [currentItem, isVideo, videoBox]
+  );
   const [source, setSource] = useState<{ itemId?: string; index: number }>({ index: 0 });
   const sourceIndex = source.itemId === currentItem?.id ? source.index : 0;
   const failedSourceRef = useRef<string | null>(null);
@@ -316,8 +324,9 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
   // --- Loading hints -------------------------------------------------------
   // Until the photo has loaded or the video has started, count the seconds,
   // so a slow arrival says what is happening instead of showing a blank.
-  const [readyId, setReadyId] = useState<string | null>(null);
-  const isReady = readyId === currentItem?.id;
+  const [loaded, setLoaded] = useState<{ id: string | null; at: number }>({ id: null, at: 0 });
+  const isReady = loaded.id === currentItem?.id;
+  const loadedAt = isReady ? loaded.at : null;
   const [waitSeconds, setWaitSeconds] = useState(0);
   useEffect(() => {
     setWaitSeconds(0);
@@ -328,7 +337,7 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
   }, [isReady, currentItem]);
 
   const markReady = useCallback(() => {
-    setReadyId(currentItem?.id ?? null);
+    setLoaded({ id: currentItem?.id ?? null, at: Date.now() });
     handleMediaLoaded();
   }, [currentItem?.id, handleMediaLoaded]);
 
@@ -355,12 +364,17 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
     };
   }, [handleActivity]);
 
-  // Each overlay comes and goes on its own rhythm; any press of the remote or
-  // move of the mouse brings them all back while the controls are up.
-  const slideMs = config.durationSeconds * 1000;
-  const clockVisible = useOverlayRhythm(config.fadeOverlays, slideMs, CLOCK_RHYTHM) || showControls;
-  const weatherVisible = useOverlayRhythm(config.fadeOverlays, slideMs, WEATHER_RHYTHM) || showControls;
-  const detailsVisible = useDetailsRhythm(config.fadeOverlays, slideMs, currentItem?.id) || showControls;
+  // Weather: 10s every 2 minutes. Clock and photo info: the first and last
+  // sixth of each photo's time (a video's own length). Pausing, or any press
+  // of the remote or move of the mouse, shows them all.
+  const [videoEdge, setVideoEdge] = useState<{ id?: string; visible: boolean }>({ visible: true });
+  const videoEdgeVisible = videoEdge.id === currentItem?.id ? videoEdge.visible : true;
+  const photoBookends = usePhotoBookends(config.fadeOverlays && !isVideo, config.durationSeconds * 1000, loadedAt, advanceAt);
+  const showAll = showControls || !isPlaying;
+  const bookendsVisible = (isVideo ? videoEdgeVisible : photoBookends) || showAll;
+  const clockVisible = bookendsVisible;
+  const detailsVisible = bookendsVisible;
+  const weatherVisible = useWeatherRhythm(config.fadeOverlays) || showAll;
 
   if (!currentItem) {
     return (
@@ -397,13 +411,24 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
             playsInline
             controls={false}
             onEnded={handleVideoEnded}
+            // Bigger than this screen's decoder can take: drop it before it
+            // plays, rather than risk sound with no picture.
+            onLoadedMetadata={(event) => {
+              const { videoWidth, videoHeight } = event.currentTarget;
+              if (videoBox && exceedsBox(videoWidth, videoHeight, videoBox)) handleVideoError();
+            }}
             onPlaying={() => {
               videoStartedRef.current = true;
               markReady();
             }}
             onError={handleVideoError}
-            onTimeUpdate={() => {
+            onTimeUpdate={(event) => {
               lastProgressRef.current = Date.now();
+              const { currentTime, duration } = event.currentTarget;
+              const visible = videoBookendVisible(config.fadeOverlays, currentTime, duration);
+              if (videoEdge.id !== currentItem.id || videoEdge.visible !== visible) {
+                setVideoEdge({ id: currentItem.id, visible });
+              }
             }}
             // No rounded corners or drop shadow on video, unlike photos: CSS
             // effects make a TV browser draw every frame through a slower path

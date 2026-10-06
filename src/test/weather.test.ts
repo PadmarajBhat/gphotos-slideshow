@@ -2,6 +2,18 @@ import { describe, it, expect } from 'vitest';
 import { mapWmoCodeToCondition } from '../api/weather';
 
 describe('Weather API WMO Code Mapping', () => {
+  it('says clear night, with a moon, after dark', () => {
+    expect(mapWmoCodeToCondition(0, false)).toEqual({ text: 'Clear Night', icon: 'moon' });
+    expect(mapWmoCodeToCondition(0, true)).toEqual({ text: 'Clear & Sunny', icon: 'sun' });
+    expect(mapWmoCodeToCondition(42, false).icon).toBe('moon');
+    expect(mapWmoCodeToCondition(61, false).icon).toBe('rain');
+  });
+
+  it('names freezing drizzle and snow showers rather than calling them fair', () => {
+    expect(mapWmoCodeToCondition(56).text).toBe('Light Drizzle');
+    expect(mapWmoCodeToCondition(85).text).toBe('Snow Showers');
+  });
+
   it('maps clear sky code 0 to sunny', () => {
     const result = mapWmoCodeToCondition(0);
     expect(result.text).toBe('Clear & Sunny');

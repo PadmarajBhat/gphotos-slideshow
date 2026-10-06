@@ -53,7 +53,7 @@
 | REQ-H1 | Top-left must show the current date and time for the viewer's own region (Indian time in India, US time in the US). | Explicit | Time, date and weekday reflect the device's detected timezone and locale, updating live. | ✅ Met — derived from `Intl` resolved timezone, ticking every second |
 | REQ-H2 | Bottom-left must show image details: where it was taken, when it was taken, and any other available information. | Explicit | Location, capture timestamp, description and camera details are shown when available. | ⚠️ Partial — capture time and description come through for shared albums, and camera EXIF renders for any source that supplies it. Location is unavailable: no current Google Photos source exposes geodata to third parties. Place names resolve only where a source carries coordinates, and the location line is left out entirely when there is none. |
 | REQ-H3 | Bottom-right must show current local weather: temperature, and whether it will rain or be sunny. | Explicit | Live temperature, condition text, matching icon, precipitation and humidity for the viewer's location. | ✅ Met — the startup state now reads as loading rather than unavailable |
-| REQ-H4 | Overlays must not obscure the photo and must be dismissible. | Implied | Overlays sit in screen corners and can be hidden. | ✅ Met — corner placement, toggle via `H` or the control bar; on screens under 640px the overlays compact and stack so none covers another; on long slides each fades out and back on its own rhythm, so none sits fixed for hours |
+| REQ-H4 | Overlays must not obscure the photo and must be dismissible. | Implied | Overlays sit in screen corners and can be hidden. | ✅ Met — corner placement, toggle via `H` or the control bar; on screens under 640px the overlays compact and stack so none covers another; on long slides the weather shows 10s every 2 minutes and the clock and photo info a third of each photo's time, so none sits fixed for hours |
 
 ## 5. Usability — TV and Elderly Users
 
@@ -85,9 +85,9 @@
 
 | ID | Requirement | Source | Acceptance criteria | Status |
 |---|---|---|---|---|
-| REQ-Q1 | The project must build and its tests must pass. | Implied | `npm run build` and `npm test` both succeed from a clean checkout. | ✅ Met — lint, 276 tests and the production build all pass; CI enforces all three on Node 20 and 22 |
+| REQ-Q1 | The project must build and its tests must pass. | Implied | `npm run build` and `npm test` both succeed from a clean checkout. | ✅ Met — lint, 286 tests and the production build all pass; CI enforces all three on Node 20 and 22 |
 | REQ-Q2 | The repository must contain no unreachable or misleading code. | Implied | Every module is reachable from the application entry point; automated checks genuinely check. | ✅ Met — the shared-album feature is wired into the connect flow; the drift checker now genuinely fails on drift; dead CSS classes and the unrelated colour palette are gone |
-| REQ-Q3 | Core behaviour must be covered by automated tests. | Implied | Playback, video handling, formatting and API mapping are tested. | ✅ Met — 276 tests across 32 files cover playback and back-off, video handling, the phone-to-TV hand-off (server and both screens), album loading and pagination, the helper's HTTP layer and storage, remote keys, navigation, preferences and media URLs |
+| REQ-Q3 | Core behaviour must be covered by automated tests. | Implied | Playback, video handling, formatting and API mapping are tested. | ✅ Met — 286 tests across 32 files cover playback and back-off, video handling, the phone-to-TV hand-off (server and both screens), album loading and pagination, the helper's HTTP layer and storage, remote keys, navigation, preferences and media URLs |
 
 ---
 
@@ -109,7 +109,7 @@
 
 | ID | Was | Now |
 |---|---|---|
-| REQ-Q1 | The project did not build | Lint, 276 tests and the production build all pass; CI enforces them on Node 20 and 22 |
+| REQ-Q1 | The project did not build | Lint, 286 tests and the production build all pass; CI enforces them on Node 20 and 22 |
 | REQ-G1 | Sign-in could never succeed (fabricated Client ID) | Placeholder removed, actionable errors, build-time ID supported, and a route that needs no sign-in |
 | REQ-U2 | Personal photos required developer-level Google Cloud setup | Scan the TV's QR and send an album link from the phone; nothing to configure |
 | REQ-U1 | A TV remote could not select an album | Explicit D-pad grid navigation plus dialog focus containment |

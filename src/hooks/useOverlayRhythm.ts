@@ -3,78 +3,85 @@ import { useEffect, useState } from 'react';
 /**
  * Overlays that never move feel static when a photo stays up for a minute,
  * and on an OLED TV left on all day, fixed bright elements risk burn-in. So
- * each overlay fades out and back on its own rhythm: proportional to the slide
- * duration, with some randomness, and offset so they never vanish or return
- * together.
+ * they come and go:
+ *
+ * - Weather: 10 seconds every 2 minutes.
+ * - Clock and photo info: a third of each photo's time on screen, split into
+ *   bookends. The first sixth runs from when the photo loads, the last sixth
+ *   up to when it changes, so the two meet across each change.
  */
 
 /** Below this a slide is too short for fading to be anything but flicker. */
-export const MIN_UNIT_MS = 20_000;
-/** However long the slides, the clock is never gone for longer than this. */
-const MAX_HIDDEN_MS = 45_000;
+export const MIN_FADE_SLIDE_MS = 20_000;
+export const WEATHER_SHOWN_MS = 10_000;
+export const WEATHER_PERIOD_MS = 120_000;
 
-/** Durations are in slides. */
-export interface OverlayRhythm {
-  shown: number;
-  hidden: number;
-  /** Extra slides before the first fade, to keep this overlay out of step with the others. */
-  offset?: number;
-}
-
-export const CLOCK_RHYTHM: OverlayRhythm = { shown: 4, hidden: 0.5 };
-export const WEATHER_RHYTHM: OverlayRhythm = { shown: 3, hidden: 0.6, offset: 1.5 };
-
-/** 0.75x to 1.25x, so the cycles drift instead of repeating exactly. */
-const jitter = (random: () => number) => 0.75 + random() * 0.5;
-
-/** Whether an overlay is showing right now. Always true when `enabled` is off. */
-export function useOverlayRhythm(
-  enabled: boolean,
-  slideMs: number,
-  { shown, hidden, offset = 0 }: OverlayRhythm,
-  random: () => number = Math.random
-): boolean {
+/** Weather: shown for 10 seconds every 2 minutes, starting with the slideshow. */
+export function useWeatherRhythm(enabled: boolean): boolean {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
     setVisible(true);
     if (!enabled) return;
-    const unit = Math.max(MIN_UNIT_MS, slideMs);
     let timer: ReturnType<typeof setTimeout>;
     const hide = () => {
       setVisible(false);
-      timer = setTimeout(show, Math.min(MAX_HIDDEN_MS, unit * hidden * jitter(random)));
+      timer = setTimeout(show, WEATHER_PERIOD_MS - WEATHER_SHOWN_MS);
     };
     const show = () => {
       setVisible(true);
-      timer = setTimeout(hide, unit * shown * jitter(random));
+      timer = setTimeout(hide, WEATHER_SHOWN_MS);
     };
-    timer = setTimeout(hide, unit * (shown + offset) * jitter(random));
+    timer = setTimeout(hide, WEATHER_SHOWN_MS);
     return () => clearTimeout(timer);
-  }, [enabled, slideMs, shown, hidden, offset, random]);
+  }, [enabled]);
 
   return enabled ? visible : true;
 }
 
 /**
- * Photo details belong to the photo, so they arrive with each one and, on a
- * long slide, fade out halfway to three quarters through, leaving the photo
- * the screen to itself.
+ * Whether the bookend overlays show at `now`, for an item on screen for
+ * `durationMs` that finished loading at `loadedAt` and changes at `endsAt`.
+ * Shown while it is still loading, and when its end time isn't known.
  */
-export function useDetailsRhythm(
+export function bookendVisible(now: number, durationMs: number, loadedAt: number | null, endsAt: number | null): boolean {
+  const edge = durationMs / 6;
+  if (loadedAt === null || now < loadedAt + edge) return true;
+  return endsAt !== null && now >= endsAt - edge;
+}
+
+/**
+ * The bookends for a photo, re-evaluated exactly at each boundary. Short
+ * slides and fading switched off keep the overlays up throughout.
+ */
+export function usePhotoBookends(
   enabled: boolean,
-  slideMs: number,
-  itemKey: string | undefined,
-  random: () => number = Math.random
+  durationMs: number,
+  loadedAt: number | null,
+  endsAt: number | null
 ): boolean {
-  const [visible, setVisible] = useState(true);
+  const active = enabled && durationMs >= MIN_FADE_SLIDE_MS;
+  // Bumped at each boundary, so the next render sees the new time.
+  const [, setTick] = useState(0);
 
   useEffect(() => {
-    setVisible(true);
-    if (!enabled || slideMs < MIN_UNIT_MS) return;
-    const timer = setTimeout(() => setVisible(false), slideMs * (0.5 + random() * 0.25));
+    if (!active) return;
+    const now = Date.now();
+    const edge = durationMs / 6;
+    const upcoming = [loadedAt === null ? null : loadedAt + edge, endsAt === null ? null : endsAt - edge].filter(
+      (t): t is number => t !== null && t > now
+    );
+    if (upcoming.length === 0) return;
+    const timer = setTimeout(() => setTick((n) => n + 1), Math.min(...upcoming) - now + 5);
     return () => clearTimeout(timer);
-  }, [enabled, slideMs, itemKey, random]);
+  });
 
-  return enabled ? visible : true;
+  return active ? bookendVisible(Date.now(), durationMs, loadedAt, endsAt) : true;
+}
+
+/** The bookends for a video, from its own length and playback position. */
+export function videoBookendVisible(enabled: boolean, currentTime: number, duration: number): boolean {
+  if (!enabled || !Number.isFinite(duration) || duration * 1000 < MIN_FADE_SLIDE_MS) return true;
+  const edge = duration / 6;
+  return currentTime < edge || currentTime >= duration - edge;
 }

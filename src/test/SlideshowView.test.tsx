@@ -112,6 +112,18 @@ describe('SlideshowView video handling', () => {
     expect(videoEl().className).not.toMatch(/drop-shadow|rounded/);
   });
 
+  it('on a TV, drops a stream that turns out bigger than the decoder can take', () => {
+    const { container } = render(
+      <SlideshowView items={[video, photo]} config={DEFAULT_CONFIG} onExit={vi.fn()} videoBox={{ width: 1920, height: 1088 }} />
+    );
+    const el = container.querySelector('video')!;
+    const first = el.getAttribute('src');
+    Object.defineProperty(el, 'videoWidth', { configurable: true, get: () => 720 });
+    Object.defineProperty(el, 'videoHeight', { configurable: true, get: () => 1280 });
+    fireEvent.loadedMetadata(el);
+    expect(el.getAttribute('src')).not.toBe(first);
+  });
+
   it('tries the next stream when one never starts', () => {
     const { videoEl } = renderShow();
     advance(VIDEO_SOURCE_TIMEOUT_MS + 100);
@@ -251,5 +263,27 @@ describe('SlideshowView settings and the remote on the control bar', () => {
     press('ArrowUp');
     press('ArrowRight');
     expect(screen.getByText('2 / 2')).toBeInTheDocument();
+  });
+});
+
+describe('SlideshowView overlay timing', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+  });
+
+  it('shows the clock and photo info as the photo arrives and as it leaves', () => {
+    const config = { ...DEFAULT_CONFIG, durationSeconds: 60, fadeOverlays: true };
+    const { container } = render(<SlideshowView items={[photo, { ...photo, id: 'p2' }]} config={config} onExit={vi.fn()} />);
+    const clock = () => screen.getByLabelText('Current Date and Time').parentElement!;
+    fireEvent.load(container.querySelector('img.object-contain')!);
+
+    advance(5000); // controls have hidden; still in the opening sixth
+    expect(clock().className).toMatch(/opacity-100/);
+    advance(6000); // 11s
+    expect(clock().className).toMatch(/opacity-0/);
+    advance(40_000); // 51s: the closing sixth
+    expect(clock().className).toMatch(/opacity-100/);
   });
 });

@@ -17,13 +17,54 @@ export function isVideoItem(item: MediaItem): boolean {
  * on, and it can't be fetched in parts. Small videos lack the larger streams;
  * a missing one fails at once and the next is tried.
  */
-export function videoSources(item: MediaItem): string[] {
+export function videoSources(item: MediaItem, box?: VideoBox): string[] {
   const url = item.videoUrl || item.baseUrl;
-  if (/^https:\/\/lh3\.googleusercontent\.com\/.*=dv$/.test(url)) {
-    const base = url.slice(0, -'=dv'.length);
-    return [`${base}=m37`, `${base}=m22`, `${base}=m18`, url];
-  }
-  return [url];
+  if (!/^https:\/\/lh3\.googleusercontent\.com\/.*=dv$/.test(url)) return [url];
+  const base = url.slice(0, -'=dv'.length);
+  const renditions = RENDITIONS.map(([suffix, shortSide]) => ({ url: `${base}=${suffix}`, shortSide }));
+
+  const w = Number(item.mediaMetadata?.width);
+  const h = Number(item.mediaMetadata?.height);
+  if (!box || !(w > 0 && h > 0)) return [...renditions.map((r) => r.url), url];
+
+  // A rendition's short side is its nominal size and its long side follows
+  // the video's shape, which the album reports reliably even where it
+  // understates the size. Those that fit come first, largest first; the
+  // rest follow, smallest first, each still checked against its real size
+  // as it loads.
+  const fits = (shortSide: number) => {
+    const longSide = (shortSide * Math.max(w, h)) / Math.min(w, h);
+    const [vw, vh] = w >= h ? [longSide, shortSide] : [shortSide, longSide];
+    return vw <= box.width && vh <= box.height;
+  };
+  const fitting = renditions.filter((r) => fits(r.shortSide));
+  const tooBig = renditions.filter((r) => !fits(r.shortSide)).reverse();
+  return [...fitting, ...tooBig].map((r) => r.url).concat(url);
+}
+
+/** The largest picture a decoder can take, in landscape terms. */
+export interface VideoBox {
+  width: number;
+  height: number;
+}
+
+/**
+ * What older TVs' hardware decoders are built for. A 2015 Bravia given a
+ * 1080x1920 portrait stream played its sound with no picture, and could not
+ * show the next several videos either, so TVs keep within this.
+ */
+export const TV_VIDEO_BOX: VideoBox = { width: 1920, height: 1088 };
+
+/** Google's streaming renditions and their nominal short side. */
+const RENDITIONS = [
+  ['m37', 1080],
+  ['m22', 720],
+  ['m18', 360],
+] as const;
+
+/** Whether a video, as actually delivered, is bigger than the box allows. */
+export function exceedsBox(videoWidth: number, videoHeight: number, box: VideoBox): boolean {
+  return videoWidth > box.width || videoHeight > box.height;
 }
 
 /** How many photos and how many videos an album holds. */
