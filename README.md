@@ -83,7 +83,7 @@ A shared-album link is the one route that works everywhere and loads a complete 
 | **H** | Show / hide overlays |
 | **M** | Video sound on / off |
 | **Menu** / **S** | Settings, over the slideshow (paused while open) |
-| **↓** / **↑** | Onto the control bar / off it. On the bar, **←** **→** move between buttons and **OK** presses |
+| **↓** / **↑** | Onto the control bar / off it (TVs show "▼ for buttons"). On the bar, **←** **→** move between buttons and **OK** presses |
 
 ---
 

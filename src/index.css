@@ -19,6 +19,12 @@
   }
 }
 
+/* No pointer while the remote's arrow keys are driving (see keyboardMode.ts). */
+.keyboard-mode,
+.keyboard-mode * {
+  cursor: none !important;
+}
+
 @layer utilities {
   /* The page itself never scrolls (the slideshow must not), so a screen that
      needs to scroll does it inside a box exactly the viewport's height.

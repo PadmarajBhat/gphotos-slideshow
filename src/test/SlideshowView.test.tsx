@@ -165,6 +165,25 @@ describe('SlideshowView video handling', () => {
     expect(el.hasAttribute('src')).toBe(false);
   });
 
+  // Regression: a new player per video ran a 2015 Bravia out of decoders;
+  // after two videos the rest had sound and no picture.
+  it('uses one video player for every video, changing only its source', () => {
+    const video2: MediaItem = { ...video, id: 'v2', videoUrl: 'https://lh3.googleusercontent.com/pw/v2=dv' };
+    const { container } = render(<SlideshowView items={[video, video2, photo]} config={DEFAULT_CONFIG} onExit={vi.fn()} />);
+    const player = container.querySelector('video')!;
+    expect(player.getAttribute('src')).toMatch(/v=m37$/);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next Slide' }));
+    expect(container.querySelector('video')).toBe(player);
+    expect(player.getAttribute('src')).toMatch(/v2=m37$/);
+
+    // A photo empties the player, releasing its decoder, without an error.
+    fireEvent.click(screen.getByRole('button', { name: 'Next Slide' }));
+    expect(player.hasAttribute('src')).toBe(false);
+    fireEvent.error(player);
+    expect(screen.getByText('3 / 3')).toBeInTheDocument();
+  });
+
   it('plays with sound when the browser allows it', async () => {
     const { videoEl } = renderShow();
     await settle();
@@ -248,6 +267,13 @@ describe('SlideshowView settings and the remote on the control bar', () => {
 
     rerender(<SlideshowView items={[photo, photo2]} config={DEFAULT_CONFIG} onExit={vi.fn()} suspended={false} />);
     expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument();
+  });
+
+  it('on a TV, says how to reach the buttons until the remote is on them', () => {
+    renderPhotos({ remoteHint: true });
+    expect(screen.getByText('▼ for buttons')).toBeInTheDocument();
+    press('ArrowDown');
+    expect(screen.queryByText('▼ for buttons')).not.toBeInTheDocument();
   });
 
   it('reaches the bar with Down, moves along it with Left and Right, and leaves with Up', () => {

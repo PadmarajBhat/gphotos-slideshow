@@ -116,7 +116,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             className="shrink-0 flex items-start gap-3 max-w-3xl mx-auto w-full p-4 rounded-2xl bg-red-950/40 border border-red-500/30 text-sm text-red-100"
           >
             <span className="flex-1">{notice}</span>
-            <button onClick={onDismissNotice} aria-label="Dismiss" className="text-red-200 hover:text-white">
+            <button data-nav onClick={onDismissNotice} aria-label="Dismiss" className="text-red-200 hover:text-white tv-focus-target rounded">
               <X className="w-4 h-4" />
             </button>
           </div>

@@ -28,6 +28,8 @@ interface SlideshowViewProps {
   suspended?: boolean;
   /** Largest video picture to play. TVs get their decoders' limit; others none. */
   videoBox?: VideoBox;
+  /** Show "▼ for buttons" over the control bar (TVs, where there is no mouse). */
+  remoteHint?: boolean;
 }
 
 const CONTROLS_IDLE_MS = 4000;
@@ -68,6 +70,7 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
   onOpenSettings,
   suspended = false,
   videoBox = IS_TV_BROWSER ? TV_VIDEO_BOX : undefined,
+  remoteHint = IS_TV_BROWSER,
 }) => {
   const [showHud, setShowHud] = useState(true);
   const [showControls, setShowControls] = useState(true);
@@ -77,6 +80,7 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
   const videoStartedRef = useRef(false);
   const lastProgressRef = useRef(0);
   const controlsRef = useRef<HTMLDivElement>(null);
+  const [barFocused, setBarFocused] = useState(false);
 
   const {
     currentIndex,
@@ -218,10 +222,41 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
     return () => window.removeEventListener('keydown', onKey, { capture: true });
   }, [suspended, onOpenSettings]);
 
-  // Start, pause and resume the video, with sound when allowed.
+  // One video player for the whole slideshow, given each video in turn. A
+  // fresh player per video ran a 2015 Bravia out of decoders: the first two
+  // videos played, then the next several had sound and no picture until the
+  // TV freed the old ones minutes later. Changing the source of one player
+  // reuses its decoder; while a photo shows, the player is emptied so its
+  // decoder is released. Declared before the playback effect, which then
+  // plays whatever source is set.
+  const playerSrc = isVideo ? sources[sourceIndex] : undefined;
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+    if (playerSrc) {
+      if (video.getAttribute('src') !== playerSrc) video.src = playerSrc;
+    } else if (video.hasAttribute('src')) {
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    }
+  }, [playerSrc]);
+
+  // Release the player when the slideshow closes.
+  useEffect(() => {
+    const video = videoRef.current;
+    return () => {
+      if (!video) return;
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    };
+  }, []);
+
+  // Start, pause and resume the video, with sound when allowed.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !isVideo) return;
     if (!isPlaying) {
       video.pause();
       return;
@@ -240,7 +275,7 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
       }
       handleVideoError();
     });
-  }, [isPlaying, currentItem?.id, sourceIndex, config.videoSound, handleVideoError]);
+  }, [isPlaying, isVideo, currentItem?.id, sourceIndex, config.videoSound, handleVideoError]);
 
   // The first press after sound was refused turns it on, rather than doing
   // its usual job (OK would otherwise pause the video). Exit keys still exit.
@@ -264,19 +299,6 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
       window.removeEventListener('pointerdown', unlock, { capture: true });
     };
   }, [soundBlocked, suspended, config.videoSound]);
-
-  // TV browsers hold on to a video's decoder until the element is garbage
-  // collected, and have few to spare: after one stuck video, the next could
-  // not start at all. Release it the moment the slideshow moves on.
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    return () => {
-      video.pause();
-      video.removeAttribute('src');
-      video.load();
-    };
-  }, [currentItem?.id, isVideo]);
 
   // Watchdog: a source that never reaches `playing` gives way to the next.
   useEffect(() => {
@@ -402,12 +424,10 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
 
       {/* 2. Main Foreground Media Layer (Contained full-view) */}
       <div className="absolute inset-0 flex items-center justify-center p-4 lg:p-8 z-10 pointer-events-none">
-        {isVideo ? (
-          <video
-            key={currentItem.id}
+        <video
             ref={videoRef}
-            src={sources[sourceIndex]}
-            // Started from the effect above, so sound can be tried first.
+            // The source is set, and playback started, from the effects
+            // above, so sound can be tried first.
             playsInline
             controls={false}
             onEnded={handleVideoEnded}
@@ -415,14 +435,19 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
             // plays, rather than risk sound with no picture.
             onLoadedMetadata={(event) => {
               const { videoWidth, videoHeight } = event.currentTarget;
-              if (videoBox && exceedsBox(videoWidth, videoHeight, videoBox)) handleVideoError();
+              if (isVideo && videoBox && exceedsBox(videoWidth, videoHeight, videoBox)) handleVideoError();
             }}
             onPlaying={() => {
+              if (!isVideo) return;
               videoStartedRef.current = true;
               markReady();
             }}
-            onError={handleVideoError}
+            onError={() => {
+              // Emptying the player between videos is not a failure.
+              if (isVideo && videoRef.current?.hasAttribute('src')) handleVideoError();
+            }}
             onTimeUpdate={(event) => {
+              if (!isVideo) return;
               lastProgressRef.current = Date.now();
               const { currentTime, duration } = event.currentTarget;
               const visible = videoBookendVisible(config.fadeOverlays, currentTime, duration);
@@ -433,9 +458,9 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
             // No rounded corners or drop shadow on video, unlike photos: CSS
             // effects make a TV browser draw every frame through a slower path
             // that some TVs fail at, leaving sound without a picture.
-            className="max-w-full max-h-full object-contain pointer-events-auto"
+            className={isVideo ? 'max-w-full max-h-full object-contain pointer-events-auto' : 'hidden'}
           />
-        ) : (
+        {!isVideo && (
           <img
             key={currentItem.id}
             src={currentItem.baseUrl}
@@ -515,10 +540,17 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
       {/* 6. Ambient Control Bar (Revealed on remote/mouse activity) */}
       <div
         ref={controlsRef}
-        className={`absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-30 transition-all duration-300 ${
+        onFocus={() => setBarFocused(true)}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setBarFocused(false);
+        }}
+        className={`absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-1 transition-all duration-300 ${
           showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
       >
+        {remoteHint && !barFocused && (
+          <p className="ambient-glass rounded-full px-3 py-1 text-xs text-slate-200">▼ for buttons</p>
+        )}
         <SlideshowControls
           isPlaying={isPlaying}
           onTogglePlay={togglePlay}

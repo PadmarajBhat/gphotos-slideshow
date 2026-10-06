@@ -3,9 +3,11 @@ import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { App } from './App';
 import { migrateLegacyStorage } from './utils/storage';
+import { trackKeyboardMode } from './utils/keyboardMode';
 import './index.css';
 
 migrateLegacyStorage();
+trackKeyboardMode();
 
 const queryClient = new QueryClient({
   defaultOptions: {
