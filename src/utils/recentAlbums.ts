@@ -11,6 +11,9 @@ export interface RecentAlbum {
   kind: RecentKind;
   title: string;
   count: number;
+  /** Breakdown of `count`, for the Continue card. Absent on entries saved before it existed. */
+  photos?: number;
+  videos?: number;
   /** Long-lived cover image. Omitted for Google, whose URLs expire hourly. */
   cover?: string;
   /** Needed to reload a shared album, since its photos aren't stored. */
@@ -32,6 +35,8 @@ function isRecentAlbum(value: unknown): value is RecentAlbum {
       typeof v.title === 'string' &&
       typeof v.count === 'number' &&
       typeof v.playedAt === 'number' &&
+      (v.photos === undefined || typeof v.photos === 'number') &&
+      (v.videos === undefined || typeof v.videos === 'number') &&
       (v.kind !== 'shared' || typeof v.sharedUrl === 'string')
   );
 }

@@ -64,3 +64,21 @@ describe('Recently played albums', () => {
     expect(loadRecentAlbums()).toEqual([]);
   });
 });
+
+describe('Photo and video counts', () => {
+  it('keeps the breakdown for the Continue card', () => {
+    recordRecentAlbum({ ...shared(1), photos: 241, videos: 60 }, 1);
+    expect(loadRecentAlbums()[0]).toMatchObject({ photos: 241, videos: 60 });
+  });
+
+  it('still loads entries saved before counts existed, and drops malformed ones', () => {
+    localStorage.setItem(
+      'gpicshow_recent',
+      JSON.stringify([
+        { ...shared(1), playedAt: 2 },
+        { ...shared(2), photos: 'many', playedAt: 1 },
+      ])
+    );
+    expect(loadRecentAlbums().map((a) => a.title)).toEqual(['Album 1']);
+  });
+});

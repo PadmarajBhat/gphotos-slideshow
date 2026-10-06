@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { SlideshowConfig, TransitionType } from '../types';
+import { MediaFilter, SlideshowConfig, TransitionType } from '../types';
 import { useFocusTrap } from '../hooks/useFocusTrap';
-import { X, Clock, Shuffle, Thermometer, Sliders, Eye, Link2, Unplug, History } from 'lucide-react';
+import { X, Clock, Shuffle, Thermometer, Sliders, Eye, Link2, Unplug, History, Film } from 'lucide-react';
 
 interface SettingsModalProps {
   onClose: () => void;
@@ -13,6 +13,12 @@ interface SettingsModalProps {
   hasRecent?: boolean;
   onClearRecent?: () => void;
 }
+
+const MEDIA_FILTERS: { id: MediaFilter; label: string }[] = [
+  { id: 'all', label: 'Photos & videos' },
+  { id: 'photos', label: 'Photos only' },
+  { id: 'videos', label: 'Videos only' },
+];
 
 const HUD_TOGGLES: { key: keyof SlideshowConfig; label: string }[] = [
   { key: 'showClock', label: 'Clock' },
@@ -118,6 +124,31 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 }`}
               >
                 {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* What to play */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+            <Film className="w-3.5 h-3.5 text-amber-400" />
+            <span>Play</span>
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            {MEDIA_FILTERS.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                aria-pressed={localConfig.mediaFilter === m.id}
+                onClick={() => setLocalConfig((p) => ({ ...p, mediaFilter: m.id }))}
+                className={`py-1.5 px-2 text-xs font-semibold rounded-xl border transition text-center tv-focus-target ${
+                  localConfig.mediaFilter === m.id
+                    ? 'bg-amber-400 text-slate-950 border-amber-400'
+                    : 'bg-slate-800 text-slate-300 border-slate-700'
+                }`}
+              >
+                {m.label}
               </button>
             ))}
           </div>

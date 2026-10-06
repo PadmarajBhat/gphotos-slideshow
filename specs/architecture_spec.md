@@ -71,8 +71,10 @@ src/
   - `<video>` is `autoPlay muted playsInline`. **Muted is mandatory**: slides advance on a timer, not a user gesture, so unmuted autoplay is refused by browser policy.
   - The photo timer is suspended; advance normally happens on `onEnded`.
   - **Failure handling is required**, because a video that never ends would otherwise freeze the frame permanently:
-    - `onError` / `onStalled` advance immediately.
-    - A 15s start watchdog advances if `playing` never fires.
+    - `onError` advances immediately.
+    - `stalled` is **not** a failure (revised 2026-10-06). Google's video server ignores byte-range requests, so a TV streams each clip from the start and the browser reports `stalled` within about 3s while a large file downloads; skipping on it threw away nearly every video on home Wi-Fi.
+    - A 30s start watchdog advances if `playing` never fires.
+    - A 30s no-progress watchdog advances a clip that started but stopped moving (no `timeupdate`).
     - A 10-minute ceiling in `useSlideshow` advances regardless.
     - A rejected `play()` promise advances.
 - **Pause semantics**: pausing stops both the slide timer and the `<video>` element.

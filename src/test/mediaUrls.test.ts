@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getBackdropUrl, isVideoItem, withGoogleSize } from '../utils/mediaUrls';
+import { countMedia, filterMedia, getBackdropUrl, isVideoItem, withGoogleSize } from '../utils/mediaUrls';
 import { MediaItem } from '../types';
 
 function item(overrides: Partial<MediaItem>): MediaItem {
@@ -64,5 +64,26 @@ describe('getBackdropUrl', () => {
 
   it('returns null for videos, which have no still frame to blur', () => {
     expect(getBackdropUrl(item({ mimeType: 'video/mp4' }))).toBeNull();
+  });
+});
+
+describe('countMedia and filterMedia', () => {
+  const photo = item({ id: 'p' });
+  const clip = item({ id: 'v', mimeType: 'video/mp4', videoUrl: 'https://lh3.googleusercontent.com/pw/v=dv' });
+  const album = [photo, clip, item({ id: 'p2' })];
+
+  it('counts photos and videos', () => {
+    expect(countMedia(album)).toEqual({ photos: 2, videos: 1 });
+  });
+
+  it('plays only the chosen kind', () => {
+    expect(filterMedia(album, 'videos').map((i) => i.id)).toEqual(['v']);
+    expect(filterMedia(album, 'photos').map((i) => i.id)).toEqual(['p', 'p2']);
+    expect(filterMedia(album, 'all')).toBe(album);
+  });
+
+  it('plays everything rather than nothing when an album has none of that kind', () => {
+    const photosOnly = [photo];
+    expect(filterMedia(photosOnly, 'videos')).toBe(photosOnly);
   });
 });

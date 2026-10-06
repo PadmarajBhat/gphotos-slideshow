@@ -50,6 +50,9 @@ export interface Album {
 
 export type TransitionType = 'random' | 'crossfade' | 'ken-burns' | 'slide-left' | 'scale-up';
 
+/** Which items an album plays: everything, or only its photos or videos. */
+export type MediaFilter = 'all' | 'photos' | 'videos';
+
 export interface SlideshowConfig {
   durationSeconds: number;
   transitionEffect: TransitionType;
@@ -60,6 +63,7 @@ export interface SlideshowConfig {
   showClock: boolean;
   /** Clock, weather and photo info fade out and back now and then, each on its own rhythm. */
   fadeOverlays: boolean;
+  mediaFilter: MediaFilter;
 }
 
 export interface WeatherData {

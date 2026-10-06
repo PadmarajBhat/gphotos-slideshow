@@ -1,11 +1,11 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MediaItem, SlideshowConfig } from './types';
 import { useAmbientPhotos } from './hooks/useAmbientPhotos';
 import { SHARED_REFRESH_MS, useSharedAlbumRefresh } from './hooks/useSharedAlbumRefresh';
 import { fetchSharedAlbum } from './api/sharedAlbum';
 import { DEMO_ALBUM, DEMO_ITEMS } from './api/demoData';
 import { loadConfig, saveConfig } from './utils/storage';
-import { isVideoItem } from './utils/mediaUrls';
+import { countMedia, filterMedia, isVideoItem } from './utils/mediaUrls';
 import {
   RecentAlbum,
   RecentKind,
@@ -71,7 +71,13 @@ const FrameApp: React.FC = () => {
 
   // Google media URLs are renewed every 50 minutes, so play the live list
   // rather than a snapshot taken when the slideshow started.
-  const activeItems = playing?.kind === 'google' ? ambient.items : playing?.items ?? [];
+  const activeItems = useMemo(
+    () => (playing?.kind === 'google' ? ambient.items : playing?.items ?? []),
+    [playing, ambient.items]
+  );
+
+  // Photos only, videos only, or both, as chosen in Settings.
+  const playableItems = useMemo(() => filterMedia(activeItems, config.mediaFilter), [activeItems, config.mediaFilter]);
 
   // If the source disappears mid-play (for example the frame is unpaired),
   // return home instead of resuming unexpectedly later.
@@ -91,6 +97,7 @@ const FrameApp: React.FC = () => {
       kind: 'demo',
       title: 'Demo',
       count: DEMO_ITEMS.length,
+      ...countMedia(DEMO_ITEMS),
       cover: DEMO_ALBUM.coverPhotoBaseUrl,
     });
   }, [remember]);
@@ -102,8 +109,14 @@ const FrameApp: React.FC = () => {
     }
     setNotice(null);
     setPlaying({ key: 'google', kind: 'google', items: [] });
-    remember({ key: 'google', kind: 'google', title: 'Your Google Photos', count: ambient.items.length });
-  }, [ambient.isReady, ambient.items.length, remember]);
+    remember({
+      key: 'google',
+      kind: 'google',
+      title: 'Your Google Photos',
+      count: ambient.items.length,
+      ...countMedia(ambient.items),
+    });
+  }, [ambient.isReady, ambient.items, remember]);
 
   /** Loads (or reuses) a shared album and starts it. Throws on failure. */
   const playShared = useCallback(
@@ -127,6 +140,7 @@ const FrameApp: React.FC = () => {
         kind: 'shared',
         title: album.title,
         count: album.items.length,
+        ...countMedia(album.items),
         cover: album.cover,
         sharedUrl: url,
       });
@@ -170,7 +184,7 @@ const FrameApp: React.FC = () => {
   );
 
   if (playing && activeItems.length > 0) {
-    return <SlideshowView items={activeItems} config={config} onExit={() => setPlaying(null)} />;
+    return <SlideshowView items={playableItems} config={config} onExit={() => setPlaying(null)} />;
   }
 
   // Resuming "Your Google Photos" only makes sense while this frame is paired.

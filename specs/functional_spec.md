@@ -36,7 +36,8 @@ Key objectives:
    - Title "Your Photo Frame" and a one-sentence tagline.
    - **Continue**: the last three albums played on that screen, the most recent pre-focused so one press of OK resumes it.
    - **Try the demo** on the left; on the right a **QR code** with "Scan to send an album" and a readable one-time code.
-   - Settings (gear): slide interval, transition, temperature unit, clock format, overlays, play a shared link directly, clear recently played.
+   - Settings (gear): slide interval, transition, **what to play** (photos & videos, photos only, videos only; an album with none of the chosen kind plays everything), temperature unit, clock format, overlays, play a shared link directly, clear recently played.
+   - Each Continue card shows the album's contents, e.g. "627 photos · 60 videos".
    - On a TV-sized screen (at least 768×480) the whole home screen fits without scrolling, because a TV browser can't really scroll. Continue sits above the demo in the left column, so the QR on the right keeps its full height however many albums there are; it shrinks to fit short screens (170px at 960×540, 260px at most). Smaller screens scroll inside a viewport-height box, since the page itself is locked for the slideshow.
 2. **Send an album from a phone**:
    - Scanning (or, on a phone or tablet, tapping) the QR opens `?send=<code>` on the phone.

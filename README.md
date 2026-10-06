@@ -50,7 +50,8 @@ A shared-album link is the one route that works everywhere and loads a complete 
 - 📱 **Send from your phone**: scan, paste, send. The TV picks it up by itself.
 - ⏯️ **Continue where you left off**: the last three albums sit at the top of the home screen, the latest already focused.
 - 🖼️ **Full-screen with blur backdrop**: photos that don't match the screen shape are letterboxed against a blurred copy of themselves.
-- 🎬 **Videos play to completion** before advancing, with error, stall and timeout handling so a broken clip skips instead of freezing the frame.
+- 🎬 **Videos play to completion** before advancing. A clip that is slow to start on home Wi-Fi gets 30 seconds; one that never starts or stops moving is skipped instead of freezing the frame.
+- 🎞️ **Photos, videos or both**: Settings → Play chooses what an album shows. The Continue cards say how many photos and videos each album holds.
 - 🔀 **Cinematic transitions**: Ken Burns, crossfade, cinematic push, soft scale, or random. Slide duration 5–60s.
 - 🕒 **Ambient overlays**: regional clock (top-left), photo details (bottom-left), live weather (bottom-right). Each can be switched off. On phones the layout tightens so nothing overlaps. A photo's location shows only when it has one.
 - 🌗 **Overlays that breathe**: on long slides the clock, weather and photo details each fade out and back on their own rhythm, timed to the slide duration with some randomness, so the screen never feels frozen and an OLED TV left on all day isn't burned by fixed elements. Any press of the remote brings them all back. Switch it off under **Settings → Fade them in and out now and then**.

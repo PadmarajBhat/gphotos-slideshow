@@ -1,4 +1,4 @@
-import { SlideshowConfig, TransitionType } from '../types';
+import { MediaFilter, SlideshowConfig, TransitionType } from '../types';
 
 const CONFIG_STORAGE_KEY = 'gpicshow_config';
 
@@ -11,7 +11,10 @@ export const DEFAULT_CONFIG: SlideshowConfig = {
   showWeather: true,
   showClock: true,
   fadeOverlays: true,
+  mediaFilter: 'all',
 };
+
+const VALID_FILTERS: MediaFilter[] = ['all', 'photos', 'videos'];
 
 const VALID_DURATIONS = [5, 10, 15, 30, 60];
 const VALID_TRANSITIONS: TransitionType[] = [
@@ -43,6 +46,9 @@ export function sanitizeConfig(raw: unknown): SlideshowConfig {
     showWeather: typeof input.showWeather === 'boolean' ? input.showWeather : true,
     showClock: typeof input.showClock === 'boolean' ? input.showClock : true,
     fadeOverlays: typeof input.fadeOverlays === 'boolean' ? input.fadeOverlays : DEFAULT_CONFIG.fadeOverlays,
+    mediaFilter: VALID_FILTERS.includes(input.mediaFilter as MediaFilter)
+      ? (input.mediaFilter as MediaFilter)
+      : DEFAULT_CONFIG.mediaFilter,
   };
 }
 

@@ -60,6 +60,7 @@ describe('Preference storage', () => {
       clockFormat: '36h',
       showWeather: 'yes',
       fadeOverlays: 'sometimes',
+      mediaFilter: 'gifs',
     });
 
     expect(sanitized.durationSeconds).toBe(DEFAULT_CONFIG.durationSeconds);
@@ -68,6 +69,7 @@ describe('Preference storage', () => {
     expect(sanitized.clockFormat).toBe('12h');
     expect(sanitized.showWeather).toBe(true);
     expect(sanitized.fadeOverlays).toBe(true);
+    expect(sanitized.mediaFilter).toBe('all');
   });
 
   it('keeps valid values that differ from the defaults', () => {
@@ -76,10 +78,12 @@ describe('Preference storage', () => {
       transitionEffect: 'ken-burns',
       showClock: false,
       fadeOverlays: false,
+      mediaFilter: 'videos',
     });
 
     expect(sanitized.durationSeconds).toBe(5);
     expect(sanitized.fadeOverlays).toBe(false);
+    expect(sanitized.mediaFilter).toBe('videos');
     expect(sanitized.transitionEffect).toBe('ken-burns');
     expect(sanitized.showClock).toBe(false);
   });

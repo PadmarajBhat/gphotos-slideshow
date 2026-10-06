@@ -1,4 +1,4 @@
-import { MediaItem } from '../types';
+import { MediaFilter, MediaItem } from '../types';
 
 export function isVideoItem(item: MediaItem): boolean {
   return Boolean(
@@ -6,6 +6,22 @@ export function isVideoItem(item: MediaItem): boolean {
     item.mimeType?.startsWith('video/') ||
     item.mediaMetadata?.video
   );
+}
+
+/** How many photos and how many videos an album holds. */
+export function countMedia(items: MediaItem[]): { photos: number; videos: number } {
+  const videos = items.filter(isVideoItem).length;
+  return { photos: items.length - videos, videos };
+}
+
+/**
+ * The items to play for the chosen filter. An album with none of the chosen
+ * kind plays everything, rather than showing nothing.
+ */
+export function filterMedia(items: MediaItem[], filter: MediaFilter): MediaItem[] {
+  if (filter === 'all') return items;
+  const wanted = items.filter((item) => isVideoItem(item) === (filter === 'videos'));
+  return wanted.length > 0 ? wanted : items;
 }
 
 /**

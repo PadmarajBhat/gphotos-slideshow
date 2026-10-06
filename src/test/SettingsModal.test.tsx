@@ -64,6 +64,16 @@ describe('SettingsModal', () => {
     expect(onSaveConfig).toHaveBeenCalledWith(expect.objectContaining({ fadeOverlays: false }));
   });
 
+  it('can play only the videos, or only the photos', () => {
+    const { onSaveConfig } = renderModal();
+    expect(screen.getByRole('button', { name: 'Photos & videos' })).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Videos only' }));
+    fireEvent.click(screen.getByRole('button', { name: /Save Preferences/ }));
+
+    expect(onSaveConfig).toHaveBeenCalledWith(expect.objectContaining({ mediaFilter: 'videos' }));
+  });
+
   it('moves focus into the dialog on open', () => {
     const { container } = renderModal();
     const dialog = container.querySelector('[role="dialog"]');

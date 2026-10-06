@@ -12,7 +12,7 @@ Requirement IDs in the last column refer to [`requirement.md`](../requirement.md
 | AC-04 | Fullscreen Slideshow | `BlurredBackdrop.test.tsx` | Fills the viewport; non-fitting photos get a blurred backdrop from a downscaled copy | REQ-S4, REQ-S5 |
 | AC-05 | Configurable Duration | `useSlideshow.test.ts`, `storage.test.ts` | Slides advance on the chosen interval, and the choice survives a reload | REQ-S2, REQ-U3 |
 | AC-06 | Full Video Playback | `useSlideshow.test.ts` | Timer suspended during video; advances on `ended` | REQ-S3 |
-| AC-07 | Media Failure Recovery | `useSlideshow.test.ts` | A video that never ends is force-advanced; up to three failures skip at once, after which retries back off from 5s to 60s; one item's repeated error events count once; a successful load resets | REQ-S3, REQ-U4 |
+| AC-07 | Media Failure Recovery | `useSlideshow.test.ts`, `SlideshowView.test.tsx` | A brief `stalled` does not skip a video; one that never starts (30s) or stops making progress (30s) is skipped; a video that never ends is force-advanced; up to three failures skip at once, after which retries back off from 5s to 60s; one item's repeated error events count once; a successful load resets | REQ-S3, REQ-U4 |
 | AC-08 | Random Transitions | `transitions.test.ts` | Random never returns `random`; each effect maps to its animation class | REQ-S1 |
 | AC-09 | Top-Left Ambient Clock | `dateUtils.test.ts` | Time, AM/PM, seconds, day and date in the viewer's own locale and timezone | REQ-H1 |
 | AC-10 | Bottom-Left Media Info | `MediaDetails.test.tsx` | Capture date/time, description and camera metadata; place name when coordinates exist | REQ-H2 |
@@ -26,15 +26,17 @@ Requirement IDs in the last column refer to [`requirement.md`](../requirement.md
 | AC-18 | Abuse Resistance | `app.test.mjs`, `inbox.test.mjs` + live run | Codes are single-use and expire; an address is cut off after 10 send attempts in 10 minutes, and forging `X-Forwarded-For` does not reset the count; links in transit are stored encrypted | REQ-T4, REQ-T5 |
 | AC-19 | Build & Lint Gate | CI | `npm run lint`, `npm test` and `npm run build` all pass on Node 20 and 22 | REQ-Q1 |
 | AC-20 | Every Screen Size | Manual, measured in the browser preview | Clock, details and weather never overlap and the control bar fits at 360×740, 375×812, 812×375, 768×1024 and 1920×1080 | REQ-P3, REQ-H4 |
+| AC-23 | Photos, Videos or Both | `mediaUrls.test.ts`, `SettingsModal.test.tsx`, `storage.test.ts`, `HomeScreen.test.tsx`, `recentAlbums.test.ts` | The filter plays only the chosen kind and falls back to everything when an album has none; Continue cards read e.g. "627 photos · 60 videos"; older saved entries still load | REQ-G4, REQ-U2 |
 | AC-22 | Fading Overlays | `useOverlayRhythm.test.ts`, `SettingsModal.test.tsx`, `storage.test.ts` | Clock and weather fade and return on separate, offset rhythms proportional to the slide; details leave long slides partway through and return with the next photo; nothing flickers on short slides; the setting persists and switching it off holds everything steady | REQ-H4 |
 | AC-21 | Home Screen Always Reachable | `HomeScreen.test.tsx` + measured in the browser preview | With three albums in Continue, the QR and its code are fully on screen with no scrolling at 960×540, 1280×720, 1920×1080 and 768×1024; phones and landscape phones scroll to reach them | REQ-P3, REQ-U1, REQ-U2 |
 
 ## 2. Test Suites
-Vitest + React Testing Library, 228 tests across 28 files.
+Vitest + React Testing Library, 240 tests across 29 files.
 
 | File | Covers |
 |---|---|
 | `useSlideshow.test.ts` | Timer, video completion, media-error recovery and back-off, watchdog, item-count changes |
+| `SlideshowView.test.tsx` | Slow-starting, progressing, stuck and never-starting videos |
 | `useSharedAlbumRefresh.test.ts` | Periodic reload of a playing shared album, failure tolerance, cleanup |
 | `useOverlayRhythm.test.ts` | Overlay fade rhythms, offsets, caps, short slides, switched off |
 | `useWakeLock.test.ts` | Acquire, release, re-acquire on visibility, unsupported browsers |

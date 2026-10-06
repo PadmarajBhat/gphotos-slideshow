@@ -20,6 +20,17 @@ interface HomeScreenProps {
 export const TAGLINE =
   'Turns any TV into a living photo frame, with your videos, the time and the weather.';
 
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+/** "627 photos · 60 videos", or just the total for entries saved before the breakdown existed. */
+export function describeContents(entry: RecentAlbum): string {
+  if (entry.photos === undefined || entry.videos === undefined) return plural(entry.count, 'item');
+  const parts = [];
+  if (entry.photos > 0) parts.push(plural(entry.photos, 'photo'));
+  if (entry.videos > 0) parts.push(plural(entry.videos, 'video'));
+  return parts.join(' · ') || plural(entry.count, 'item');
+}
+
 const RecentCard: React.FC<{ entry: RecentAlbum; cover?: string; onPlay: () => void }> = ({
   entry,
   cover,
@@ -29,11 +40,11 @@ const RecentCard: React.FC<{ entry: RecentAlbum; cover?: string; onPlay: () => v
     data-nav
     data-recent
     onClick={onPlay}
-    aria-label={`Play ${entry.title}, ${entry.count} items`}
+    aria-label={`Play ${entry.title}, ${describeContents(entry)}`}
     // A compact row on phones, so three of them don't push everything else off screen.
     className="group flex sm:flex-col items-center sm:items-stretch rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 text-left tv-focus-target"
   >
-    <div className="w-28 sm:w-auto shrink-0 aspect-[16/9] bg-slate-800 relative">
+    <div className="w-28 sm:w-auto shrink-0 aspect-[16/9] [@media(max-height:600px)]:aspect-[21/9] bg-slate-800 relative">
       {cover ? (
         <img src={cover} alt="" className="w-full h-full object-cover" loading="lazy" />
       ) : (
@@ -42,9 +53,9 @@ const RecentCard: React.FC<{ entry: RecentAlbum; cover?: string; onPlay: () => v
         </div>
       )}
     </div>
-    <div className="px-4 py-3 flex items-baseline gap-2 min-w-0">
+    <div className="px-4 py-2.5 flex flex-col min-w-0">
       <span className="font-semibold text-white truncate">{entry.title}</span>
-      <span className="text-sm text-slate-400 shrink-0">{entry.count}</span>
+      <span className="text-sm text-slate-400 truncate">{describeContents(entry)}</span>
     </div>
   </button>
 );
@@ -139,7 +150,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               data-demo
               onClick={onPlayDemo}
               aria-label={`Try the demo, ${demoCount} photos and videos`}
-              className="group relative min-h-[220px] tv:min-h-[120px] tv:flex-1 rounded-3xl overflow-hidden bg-slate-900 border border-slate-800 tv-focus-target text-left"
+              className="group relative min-h-[220px] tv:min-h-[100px] tv:flex-1 rounded-3xl overflow-hidden bg-slate-900 border border-slate-800 tv-focus-target text-left"
             >
               <img src={demoCover} alt="" className="absolute inset-0 w-full h-full object-cover opacity-80" />
               <div className="absolute inset-0 flex items-center justify-center">

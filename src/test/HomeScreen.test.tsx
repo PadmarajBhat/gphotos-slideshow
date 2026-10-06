@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { HomeScreen, TAGLINE } from '../components/HomeScreen';
+import { HomeScreen, TAGLINE, describeContents } from '../components/HomeScreen';
 import { RecentAlbum } from '../utils/recentAlbums';
 
 const recentAlbums: RecentAlbum[] = [
@@ -102,5 +102,32 @@ describe('HomeScreen', () => {
     const box = container.firstElementChild!;
     expect(box).toHaveClass('h-viewport', 'overflow-y-auto');
     expect(box).not.toHaveClass('min-h-screen');
+  });
+});
+
+describe('Continue card contents', () => {
+  const base = { key: 'shared:k', kind: 'shared' as const, title: 'Krishna', count: 687, sharedUrl: 'https://photos.app.goo.gl/k', playedAt: 1 };
+
+  it('says how many photos and videos the album holds', () => {
+    render(
+      <HomeScreen
+        recent={[{ ...base, photos: 627, videos: 60 }]}
+        demoCover="https://x/demo.jpg"
+        demoCount={7}
+        rightPanel={null}
+        onDismissNotice={vi.fn()}
+        onPlayDemo={vi.fn()}
+        onPlayRecent={vi.fn()}
+        onOpenSettings={vi.fn()}
+      />
+    );
+    expect(screen.getByText('627 photos · 60 videos')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Play Krishna, 627 photos · 60 videos' })).toBeInTheDocument();
+  });
+
+  it('reads naturally for one of a kind, none of a kind, and older entries', () => {
+    expect(describeContents({ ...base, count: 2, photos: 1, videos: 1 })).toBe('1 photo · 1 video');
+    expect(describeContents({ ...base, count: 5, photos: 5, videos: 0 })).toBe('5 photos');
+    expect(describeContents(base)).toBe('687 items');
   });
 });

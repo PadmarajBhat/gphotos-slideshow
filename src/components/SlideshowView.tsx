@@ -23,8 +23,16 @@ const CONTROLS_IDLE_MS = 4000;
 const fade = (visible: boolean) =>
   `transition-opacity duration-[1500ms] ease-in-out ${visible ? 'opacity-100' : 'opacity-0'}`;
 
-/** If a video has not begun playing by now, treat it as unplayable. */
-const VIDEO_START_TIMEOUT_MS = 15000;
+/**
+ * Google's video server can't send part of a file, so a TV must stream each
+ * video from the start; on home Wi-Fi a large clip can take several seconds
+ * to begin, and the browser reports `stalled` along the way. That is normal,
+ * so only these two timeouts count as a broken video.
+ */
+/** Never started playing by now. */
+export const VIDEO_START_TIMEOUT_MS = 30000;
+/** Started, then made no progress for this long. */
+export const VIDEO_STUCK_MS = 30000;
 
 export const SlideshowView: React.FC<SlideshowViewProps> = ({ items, config, onExit }) => {
   const [showHud, setShowHud] = useState(true);
@@ -33,6 +41,7 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({ items, config, onE
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoStartedRef = useRef(false);
+  const lastProgressRef = useRef(0);
 
   const {
     currentIndex,
@@ -112,6 +121,18 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({ items, config, onE
     return () => clearTimeout(timer);
   }, [isVideo, isPlaying, currentItem?.id, handleMediaError]);
 
+  // A video that started but has stopped moving (the download died) moves on.
+  useEffect(() => {
+    if (!isVideo || !isPlaying) return;
+    lastProgressRef.current = Date.now();
+    const timer = setInterval(() => {
+      if (videoStartedRef.current && Date.now() - lastProgressRef.current > VIDEO_STUCK_MS) {
+        handleMediaError();
+      }
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [isVideo, isPlaying, currentItem?.id, handleMediaError]);
+
   // Auto-hide controls and cursor after idle. Deliberately not keyed on the
   // slide index: re-running per slide would pop the bar back up forever.
   const handleActivity = useCallback(() => {
@@ -179,7 +200,9 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({ items, config, onE
               handleMediaLoaded();
             }}
             onError={handleMediaError}
-            onStalled={handleMediaError}
+            onTimeUpdate={() => {
+              lastProgressRef.current = Date.now();
+            }}
             className="max-w-full max-h-full object-contain rounded-lg drop-shadow-2xl pointer-events-auto"
           />
         ) : (
