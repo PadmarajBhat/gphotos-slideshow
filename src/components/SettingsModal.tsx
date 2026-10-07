@@ -275,6 +275,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           >
             Fade them in and out now and then
           </button>
+          <button
+            type="button"
+            aria-pressed={localConfig.videoDiagnostics}
+            onClick={() => setLocalConfig((p) => ({ ...p, videoDiagnostics: !p.videoDiagnostics }))}
+            className={`py-1.5 px-2 text-xs font-semibold rounded-xl border transition tv-focus-target ${
+              localConfig.videoDiagnostics
+                ? 'bg-amber-400 text-slate-950 border-amber-400'
+                : 'bg-slate-800 text-slate-400 border-slate-700'
+            }`}
+          >
+            Video details (troubleshooting)
+          </button>
         </div>
 
         {/* 5. Sources and history - the controls the simplified home screen hides */}

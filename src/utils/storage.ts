@@ -14,6 +14,7 @@ export const DEFAULT_CONFIG: SlideshowConfig = {
   mediaFilter: 'all',
   playOrder: 'album',
   videoSound: true,
+  videoDiagnostics: false,
 };
 
 const VALID_ORDERS: PlayOrder[] = ['album', 'newest', 'oldest', 'shuffle'];
@@ -57,6 +58,7 @@ export function sanitizeConfig(raw: unknown): SlideshowConfig {
       ? (input.playOrder as PlayOrder)
       : DEFAULT_CONFIG.playOrder,
     videoSound: typeof input.videoSound === 'boolean' ? input.videoSound : DEFAULT_CONFIG.videoSound,
+    videoDiagnostics: typeof input.videoDiagnostics === 'boolean' ? input.videoDiagnostics : DEFAULT_CONFIG.videoDiagnostics,
   };
 }
 

@@ -3,6 +3,7 @@ import { render, screen, fireEvent, act, cleanup } from '@testing-library/react'
 
 // The weather needs a network and a query client; neither matters here.
 vi.mock('../components/WeatherWidget', () => ({ WeatherWidget: () => null }));
+vi.mock('../api/videoReport', () => ({ sendVideoReport: vi.fn() }));
 
 import {
   SlideshowView,
@@ -12,6 +13,7 @@ import {
 } from '../components/SlideshowView';
 import { DEFAULT_CONFIG } from '../utils/storage';
 import { MediaItem } from '../types';
+import { sendVideoReport } from '../api/videoReport';
 
 const meta = { creationTime: '2025-01-01T00:00:00Z', width: '1920', height: '1080' };
 const video: MediaItem = {
@@ -311,5 +313,45 @@ describe('SlideshowView overlay timing', () => {
     expect(clock().className).toMatch(/opacity-0/);
     advance(40_000); // 51s: the closing sixth
     expect(clock().className).toMatch(/opacity-100/);
+  });
+});
+
+describe('SlideshowView video troubleshooting', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
+    vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+    vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
+  });
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    vi.mocked(sendVideoReport).mockClear();
+  });
+
+  it('shows what the video does, and sends one report per video', () => {
+    const config = { ...DEFAULT_CONFIG, videoDiagnostics: true };
+    const { container } = render(<SlideshowView items={[video, photo]} config={config} onExit={vi.fn()} />);
+    const player = container.querySelector('video')!;
+    fireEvent.playing(player);
+    expect(screen.getByText(/details are being sent/)).toBeInTheDocument();
+    expect(screen.getByText(/source m37/)).toBeInTheDocument();
+    expect(screen.getByText(/playing/)).toBeInTheDocument();
+
+    advance(20_000);
+    expect(sendVideoReport).toHaveBeenCalledTimes(1);
+    const report = vi.mocked(sendVideoReport).mock.calls[0][0] as { position: number; events: string[] };
+    expect(report.position).toBe(1);
+    expect(report.events.some((e) => e.includes('frames='))).toBe(true);
+    expect(JSON.stringify(report)).not.toContain('googleusercontent');
+  });
+
+  it('sends nothing while the setting is off', () => {
+    const { container } = render(<SlideshowView items={[video, photo]} config={DEFAULT_CONFIG} onExit={vi.fn()} />);
+    fireEvent.playing(container.querySelector('video')!);
+    advance(25_000);
+    expect(sendVideoReport).not.toHaveBeenCalled();
+    expect(screen.queryByText(/details are being sent/)).not.toBeInTheDocument();
   });
 });

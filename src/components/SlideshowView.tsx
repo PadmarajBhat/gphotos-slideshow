@@ -13,6 +13,7 @@ import { SlideshowControls } from './SlideshowControls';
 import { getTransitionClasses } from '../utils/transitions';
 import { TV_VIDEO_BOX, VideoBox, exceedsBox, videoSources } from '../utils/mediaUrls';
 import { IS_TV_BROWSER } from '../utils/device';
+import { sendVideoReport } from '../api/videoReport';
 
 interface SlideshowViewProps {
   items: MediaItem[];
@@ -115,19 +116,69 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
   const sourceIndex = source.itemId === currentItem?.id ? source.index : 0;
   const failedSourceRef = useRef<string | null>(null);
 
+  // --- Troubleshooting (Settings: Video details) ----------------------------
+  // A record of what each video does: which source, its real size, whether
+  // frames are decoded, errors. Shown on screen and sent to the photo
+  // service's log, only while the setting is on.
+  const diagnostics = config.videoDiagnostics;
+  const reportRef = useRef<{ itemId: string; position: number; startedAt: number; events: string[]; sent: boolean } | null>(
+    null
+  );
+  const [reportLines, setReportLines] = useState<string[]>([]);
+  const logVideo = useCallback(
+    (line: string) => {
+      const report = reportRef.current;
+      if (!report) return;
+      report.events.push(`${((Date.now() - report.startedAt) / 1000).toFixed(1)}s ${line}`);
+      if (diagnostics) setReportLines(report.events.slice(-10));
+    },
+    [diagnostics]
+  );
+  const sendReport = useCallback(() => {
+    const report = reportRef.current;
+    if (!diagnostics || !report || report.sent) return;
+    report.sent = true;
+    sendVideoReport({
+      position: report.position,
+      item: report.itemId.slice(-6),
+      screen: `${window.innerWidth}x${window.innerHeight}@${window.devicePixelRatio}`,
+      userAgent: navigator.userAgent,
+      events: report.events,
+    });
+  }, [diagnostics]);
+  const sendReportRef = useRef(sendReport);
+  sendReportRef.current = sendReport;
+  const positionRef = useRef(currentIndex + 1);
+  positionRef.current = currentIndex + 1;
+
+  // A fresh record for each video; the last one is sent as it ends.
+  useEffect(() => {
+    if (!isVideo || !currentItem?.id) return;
+    reportRef.current = {
+      itemId: currentItem.id,
+      position: positionRef.current,
+      startedAt: Date.now(),
+      events: [],
+      sent: false,
+    };
+    setReportLines([]);
+    return () => sendReportRef.current();
+  }, [isVideo, currentItem?.id]);
+
   /** This source failed: try the next one, and skip the video only when none are left. */
-  const handleVideoError = useCallback(() => {
+  const handleVideoError = useCallback((reason = 'failed') => {
     const tag = `${currentItem?.id}:${sourceIndex}`;
     // An error event and a rejected play() often report the same failure.
     if (failedSourceRef.current === tag) return;
     failedSourceRef.current = tag;
+    logVideo(`${reason} -> ${sourceIndex < sources.length - 1 ? 'next source' : 'skip video'}`);
     if (sourceIndex < sources.length - 1) {
       videoStartedRef.current = false;
       setSource({ itemId: currentItem?.id, index: sourceIndex + 1 });
     } else {
       handleMediaError();
     }
-  }, [currentItem?.id, sourceIndex, sources.length, handleMediaError]);
+  }, [currentItem?.id, sourceIndex, sources.length, handleMediaError, logVideo]);
 
   // --- Sound ---------------------------------------------------------------
   // Browsers only allow sound once someone has pressed or tapped something on
@@ -234,13 +285,16 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
     const video = videoRef.current;
     if (!video) return;
     if (playerSrc) {
-      if (video.getAttribute('src') !== playerSrc) video.src = playerSrc;
+      if (video.getAttribute('src') !== playerSrc) {
+        video.src = playerSrc;
+        logVideo(`source ${playerSrc.split('=').pop()}`);
+      }
     } else if (video.hasAttribute('src')) {
       video.pause();
       video.removeAttribute('src');
       video.load();
     }
-  }, [playerSrc]);
+  }, [playerSrc, logVideo]);
 
   // Release the player when the slideshow closes.
   useEffect(() => {
@@ -270,10 +324,14 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
         soundBlockedRef.current = true;
         setSoundBlocked(true);
         video.muted = true;
-        video.play()?.catch(() => handleVideoError());
+        video
+          .play()
+          ?.catch((retryErr: unknown) =>
+            handleVideoError(`play() refused muted: ${(retryErr as { name?: string } | null)?.name}`)
+          );
         return;
       }
-      handleVideoError();
+      handleVideoError(`play() refused: ${name}`);
     });
   }, [isPlaying, isVideo, currentItem?.id, sourceIndex, config.videoSound, handleVideoError]);
 
@@ -307,7 +365,7 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
     const isLastSource = sourceIndex >= sources.length - 1;
     const timer = setTimeout(
       () => {
-        if (!videoStartedRef.current) handleVideoError();
+        if (!videoStartedRef.current) handleVideoError('never started');
       },
       isLastSource ? VIDEO_START_TIMEOUT_MS : VIDEO_SOURCE_TIMEOUT_MS
     );
@@ -325,11 +383,35 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
         (video as HTMLVideoElement & { webkitDecodedFrameCount?: number }).webkitDecodedFrameCount;
       // Browsers that can't say are left alone.
       if (frames === 0 || (frames === undefined && video.videoWidth === 0 && video.readyState >= 2)) {
-        handleVideoError();
+        handleVideoError(`no picture (frames ${frames})`);
       }
     }, 1000);
     return () => clearInterval(timer);
   }, [isVideo, isPlaying, currentItem?.id, sourceIndex, handleVideoError]);
+
+  // Troubleshooting samples: every 2s for a video's first 20s, then sent.
+  useEffect(() => {
+    if (!diagnostics || !isVideo) return;
+    let samples = 0;
+    const timer = setInterval(() => {
+      const video = videoRef.current as (HTMLVideoElement & { webkitDecodedFrameCount?: number }) | null;
+      if (!video) return;
+      samples += 1;
+      const quality = video.getVideoPlaybackQuality?.();
+      const shown = video.getBoundingClientRect();
+      logVideo(
+        `t=${video.currentTime.toFixed(1)} ready=${video.readyState} net=${video.networkState} ` +
+          `size=${video.videoWidth}x${video.videoHeight} shown=${Math.round(shown.width)}x${Math.round(shown.height)} ` +
+          `frames=${quality?.totalVideoFrames ?? '-'} dropped=${quality?.droppedVideoFrames ?? '-'} ` +
+          `decoded=${video.webkitDecodedFrameCount ?? '-'} paused=${video.paused}`
+      );
+      if (samples >= 10) {
+        clearInterval(timer);
+        sendReportRef.current();
+      }
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [diagnostics, isVideo, currentItem?.id, logVideo]);
 
   // A video that started but has stopped moving (the download died) moves on.
   useEffect(() => {
@@ -430,21 +512,34 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
             // above, so sound can be tried first.
             playsInline
             controls={false}
-            onEnded={handleVideoEnded}
+            onEnded={() => {
+              logVideo('ended');
+              handleVideoEnded();
+            }}
+            onWaiting={() => isVideo && logVideo('waiting')}
+            onStalled={() => isVideo && logVideo('stalled')}
             // Bigger than this screen's decoder can take: drop it before it
             // plays, rather than risk sound with no picture.
             onLoadedMetadata={(event) => {
               const { videoWidth, videoHeight } = event.currentTarget;
-              if (isVideo && videoBox && exceedsBox(videoWidth, videoHeight, videoBox)) handleVideoError();
+              if (!isVideo) return;
+              logVideo(`metadata ${videoWidth}x${videoHeight} ${Math.round(event.currentTarget.duration)}s`);
+              if (videoBox && exceedsBox(videoWidth, videoHeight, videoBox)) {
+                handleVideoError(`too big ${videoWidth}x${videoHeight}`);
+              }
             }}
             onPlaying={() => {
               if (!isVideo) return;
+              logVideo('playing');
               videoStartedRef.current = true;
               markReady();
             }}
             onError={() => {
               // Emptying the player between videos is not a failure.
-              if (isVideo && videoRef.current?.hasAttribute('src')) handleVideoError();
+              const err = videoRef.current?.error;
+              if (isVideo && videoRef.current?.hasAttribute('src')) {
+                handleVideoError(`error ${err?.code ?? '?'} ${err?.message ?? ''}`.trim());
+              }
             }}
             onTimeUpdate={(event) => {
               if (!isVideo) return;
@@ -502,6 +597,18 @@ export const SlideshowView: React.FC<SlideshowViewProps> = ({
               Trying again shortly. If this keeps happening, check the TV’s Wi-Fi.
             </p>
           </div>
+        </div>
+      )}
+
+      {diagnostics && isVideo && (
+        // At the side, clear of a centred video, so it can't affect playback.
+        <div className="absolute left-4 top-1/4 z-40 w-[30vw] max-w-md rounded-xl bg-black/85 px-3 py-2 font-mono text-[11px] leading-snug text-emerald-300 pointer-events-none">
+          <p className="text-slate-300 mb-1">Video {currentIndex + 1}: details are being sent to help fix playback</p>
+          {reportLines.map((line, i) => (
+            <p key={i} className="break-all">
+              {line}
+            </p>
+          ))}
         </div>
       )}
 

@@ -22,6 +22,28 @@ const CONNECT_LIMIT = 10;
 const CONNECT_WINDOW_MS = 10 * 60 * 1000;
 /** Each send attempt is a guess at a TV's code, so it gets the same cap. */
 const SEND_LIMIT = 10;
+/** Video troubleshooting reports: one per video, so a generous cap. */
+const REPORT_LIMIT = 120;
+
+/**
+ * Keeps a troubleshooting report to plain facts: numbers, short words and
+ * nested lists of them. Anything that looks like a link is removed, so no
+ * album or media address can end up in the log.
+ */
+export function sanitizeReport(value, depth = 0) {
+  if (depth > 4) return null;
+  if (typeof value === 'number' || typeof value === 'boolean' || value === null) return value;
+  if (typeof value === 'string') return value.replace(/https?:\/\/\S+/g, '[link]').slice(0, 300);
+  if (Array.isArray(value)) return value.slice(0, 40).map((v) => sanitizeReport(v, depth + 1));
+  if (typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value)
+        .slice(0, 40)
+        .map(([k, v]) => [k.slice(0, 40), sanitizeReport(v, depth + 1)])
+    );
+  }
+  return null;
+}
 
 /**
  * The caller's address, for rate limiting. Behind Cloud Run the socket is the
@@ -78,6 +100,7 @@ export function createHandler({ sessions, inbox, allowedOrigins = [], distDir, t
   }
   const rateLimited = limiter(CONNECT_LIMIT);
   const sendLimited = limiter(SEND_LIMIT);
+  const reportLimited = limiter(REPORT_LIMIT);
 
   async function serveStatic(res, pathname) {
     if (!distDir) {
@@ -159,6 +182,23 @@ export function createHandler({ sessions, inbox, allowedOrigins = [], distDir, t
       }
 
       // The TV's half: a code to show, and an inbox to check.
+      // Video troubleshooting, sent only while "Video details" is switched on
+      // in Settings. Written to the request log; nothing is stored.
+      if (pathname === '/api/video-report' && req.method === 'POST') {
+        if (!isValidSessionSecret(req.headers['x-frame-session'])) {
+          return sendJson(res, 400, { error: 'Missing or invalid X-Frame-Session header' });
+        }
+        if (reportLimited(clientIp(req, trustProxy))) return sendJson(res, 429, { error: 'Too many reports.' });
+        let body;
+        try {
+          body = await readJsonBody(req, 8 * 1024);
+        } catch (err) {
+          return sendJson(res, 400, { error: err.message });
+        }
+        console.log(JSON.stringify({ videoReport: sanitizeReport(body) }));
+        return sendJson(res, 200, { ok: true });
+      }
+
       if ((pathname === '/api/send-code' || pathname === '/api/inbox') && inbox) {
         const secret = req.headers['x-frame-session'];
         if (!isValidSessionSecret(secret)) {

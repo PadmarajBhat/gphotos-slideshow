@@ -216,6 +216,8 @@ Photos and videos stream from Google to your screen and are never stored. The fu
 
 **Stored on the screen** (`localStorage`): slideshow preferences (`gpicshow_config`), the last three albums played including their shared links (`gpicshow_recent`), and the screen's random id (`gpicshow_session`). Clear the albums under **Settings → Clear recently played**.
 
+**Video troubleshooting** (off by default): with **Settings → Video details** on, each video's playback facts (which version played, its size, frame counts, errors, the browser's name, the screen size) go to the photo service's log. No links, photos or personal details.
+
 **Stored on the server**: send codes (15 minutes) and links waiting to be collected (at most an hour), both encrypted where they hold a link, and deleted from Firestore automatically.
 
 Anyone with a shared-album link can view that album. Use an album made for the frame, and switch link sharing off in Google Photos to revoke it at any time.

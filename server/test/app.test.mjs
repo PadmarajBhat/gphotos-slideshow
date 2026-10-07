@@ -149,3 +149,30 @@ describe('clientIp', () => {
     expect(clientIp(req(undefined), true)).toBe('192.0.2.7');
   });
 });
+
+describe('Video troubleshooting reports', () => {
+  let server, base;
+  beforeAll(async () => {
+    server = createServer(createHandler({ sessions: {}, allowedOrigins: [ALLOWED], distDir: null }));
+    await new Promise((r) => server.listen(0, r));
+    base = `http://127.0.0.1:${server.address().port}`;
+  });
+  afterAll(() => new Promise((r) => server.close(r)));
+
+  const post = (body, headers = { 'X-Frame-Session': SECRET }) =>
+    fetch(`${base}/api/video-report`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
+
+  it('writes a report to the log, with any link removed', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const res = await post({ position: 3, events: ['0.1s source m18', 'oops https://lh3.googleusercontent.com/pw/abc=m18'] });
+    expect(res.status).toBe(200);
+    const line = log.mock.calls.map((c) => c[0]).find((l) => String(l).includes('videoReport'));
+    expect(line).toContain('source m18');
+    expect(line).not.toContain('googleusercontent');
+    log.mockRestore();
+  });
+
+  it('only accepts reports from a frame', async () => {
+    expect((await post({ events: [] }, {})).status).toBe(400);
+  });
+});

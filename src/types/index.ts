@@ -70,6 +70,8 @@ export interface SlideshowConfig {
   playOrder: PlayOrder;
   /** Videos play with sound (when the browser allows it). */
   videoSound: boolean;
+  /** Troubleshooting: show what each video does, and send it to the photo service. */
+  videoDiagnostics: boolean;
 }
 
 export interface WeatherData {

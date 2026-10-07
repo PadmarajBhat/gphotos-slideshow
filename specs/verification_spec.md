@@ -35,7 +35,7 @@ Requirement IDs in the last column refer to [`requirement.md`](../requirement.md
 | AC-21 | Home Screen Always Reachable | `HomeScreen.test.tsx` + measured in the browser preview | With three albums in Continue, the QR and its code are fully on screen with no scrolling at 960×540, 1280×720, 1920×1080 and 768×1024; phones and landscape phones scroll to reach them | REQ-P3, REQ-U1, REQ-U2 |
 
 ## 2. Test Suites
-Vitest + React Testing Library, 289 tests across 33 files.
+Vitest + React Testing Library, 293 tests across 33 files.
 
 | File | Covers |
 |---|---|
